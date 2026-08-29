@@ -1,0 +1,17 @@
+[
+  {
+    "technology": "LangChain",
+    "signals": {
+      "packages": [],
+      "imports": [
+        "langchain"
+      ],
+      "environment_variables": [],
+      "endpoints": [],
+      "code_patterns": [],
+      "docker_images": [],
+      "models": [],
+      "extensions_and_metrics": []
+    }
+  }
+]
