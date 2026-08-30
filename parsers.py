@@ -1,19 +1,25 @@
 import ast
 import json
 import re
+from pathlib import Path
 
-from config import TECH_MATRIX
+from config import TECH_MATRIX, SIGNAL_LABELS
 
 
-def _record(bucket, tech_name, category, value, location):
-    bucket.setdefault(tech_name, {})
-    cat_map = bucket[tech_name].setdefault(category, {})
-    cat_map.setdefault(value, set()).add(location)
+def _record(bucket, tech_name, category, marker_value, file_label, evidence_text):
+    entry = bucket.setdefault(tech_name, {"categories": {}, "occurrences": set()})
+    entry["categories"].setdefault(category, set()).add(marker_value)
+    entry["occurrences"].add((
+        SIGNAL_LABELS.get(category, category),
+        file_label,
+        evidence_text.strip(),
+    ))
 
 
 def _resolve_overlaps(candidates):
     """candidates: list of (start, end, tech, category, value).
-    Longest span wins; overlapping shorter spans are dropped."""
+    Longest span wins; overlapping shorter spans are dropped so a
+    marker fully contained in a longer match isn't double-counted."""
     candidates.sort(key=lambda c: (-(c[1] - c[0]), c[0]))
     accepted = []
     occupied = []
@@ -29,9 +35,12 @@ def _resolve_overlaps(candidates):
     return accepted
 
 
-def scan_text_for_patterns(text, file_path, location_label, detections):
+def scan_text_for_patterns(text, file_label, detections):
     """Regex-based non-overlapping scan across all pattern categories
-    except import identifiers (handled separately for .py/.ipynb)."""
+    (packages, env vars, endpoints, code patterns, docker images,
+    models, extensions/metrics). Language-agnostic. `text` is treated
+    as the evidence snippet (e.g. one source line, one config line, or
+    a 'key: value' pair) and is stored verbatim in the evidence record."""
     candidates = []
     for entry in TECH_MATRIX:
         tech = entry["technology"]
@@ -43,7 +52,7 @@ def scan_text_for_patterns(text, file_path, location_label, detections):
                 except re.error:
                     continue
     for tech, category, value in _resolve_overlaps(candidates):
-        _record(detections, tech, category, value, location_label)
+        _record(detections, tech, category, value, file_label, text)
 
 
 def _match_import_identifier(name):
@@ -55,14 +64,20 @@ def _match_import_identifier(name):
     return matches
 
 
-def scan_python_ast(source, file_path, detections):
-    """Returns True on success, False on SyntaxError (caller should
-    fall back to plain regex scan)."""
+def parse_python(file_label, text, detections):
+    """AST-based import/call extraction; falls back to plain regex
+    scan on SyntaxError. Scans line-by-line (rather than the whole
+    source at once) so each detection carries a concrete evidence
+    line, at the cost of missing patterns that span multiple lines."""
     try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return False
+        tree = ast.parse(text)
+    except SyntaxError as e:
+        print(f"[!] SyntaxError in {file_label}: {e}. Falling back to regex scan.")
+        for line in text.splitlines():
+            scan_text_for_patterns(line, file_label, detections)
+        return
 
+    source_lines = text.splitlines()
     identifiers = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -95,79 +110,71 @@ def scan_python_ast(source, file_path, detections):
                 best_per_name_line[(tech, lineno)] = ident
 
     for (tech, lineno), ident in best_per_name_line.items():
-        _record(detections, tech, "imports", ident, f"line {lineno}")
+        line_text = source_lines[lineno - 1] if 0 < lineno <= len(source_lines) else ident
+        _record(detections, tech, "imports", ident, file_label, line_text)
 
-    scan_text_for_patterns(source, file_path, "source", detections)
-    return True
-
-
-def parse_py(file_path, text, detections):
-    ok = scan_python_ast(text, file_path, detections)
-    if not ok:
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            scan_text_for_patterns(line, file_path, f"line {lineno}", detections)
+    for line in source_lines:
+        scan_text_for_patterns(line, file_label, detections)
 
 
-def parse_ipynb(file_path, text, detections):
-    try:
-        nb = json.loads(text)
-    except json.JSONDecodeError:
-        return
-    for idx, cell in enumerate(nb.get("cells", [])):
-        if cell.get("cell_type") != "code":
-            continue
-        src = cell.get("source", [])
-        code_text = "".join(src) if isinstance(src, list) else src
-        ok = scan_python_ast(code_text, file_path, detections)
-        if not ok:
-            for lineno, line in enumerate(code_text.splitlines(), start=1):
-                scan_text_for_patterns(line, file_path, f"cell {idx} line {lineno}", detections)
+def parse_js_ts(file_label, text, detections):
+    """Regex-only scan for JS/TS: import/require statements, endpoints,
+    env var references, SDK instantiation patterns."""
+    for line in text.splitlines():
+        scan_text_for_patterns(line, file_label, detections)
 
 
-def _walk_json(value, path, file_path, detections):
+def parse_text_config(file_label, text, detections):
+    """YAML / TOML: line-by-line regex scan (values, keys, endpoints)."""
+    for line in text.splitlines():
+        scan_text_for_patterns(line, file_label, detections)
+
+
+def _walk_json(value, path, file_label, detections):
     if isinstance(value, dict):
         for k, v in value.items():
-            scan_text_for_patterns(str(k), file_path, f"key:{path}.{k}", detections)
-            _walk_json(v, f"{path}.{k}", file_path, detections)
+            if isinstance(v, (dict, list)):
+                _walk_json(v, f"{path}.{k}", file_label, detections)
+            else:
+                scan_text_for_patterns(f"{k}: {v}", file_label, detections)
     elif isinstance(value, list):
         for i, item in enumerate(value):
-            _walk_json(item, f"{path}[{i}]", file_path, detections)
+            _walk_json(item, f"{path}[{i}]", file_label, detections)
     else:
-        scan_text_for_patterns(str(value), file_path, f"value:{path}", detections)
+        scan_text_for_patterns(str(value), file_label, detections)
 
 
-def parse_json(file_path, text, detections):
+def parse_json_config(file_label, text, detections):
     try:
         data = json.loads(text)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"[!] JSONDecodeError in {file_label}: {e}. Falling back to regex scan.")
+        for line in text.splitlines():
+            scan_text_for_patterns(line, file_label, detections)
         return
-    _walk_json(data, "$", file_path, detections)
-
-
-def parse_jsonl(file_path, text, detections):
-    for lineno, line in enumerate(text.splitlines(), start=1):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            obj = json.loads(line)
-            _walk_json(obj, f"line{lineno}", file_path, detections)
-        except json.JSONDecodeError:
-            scan_text_for_patterns(line, file_path, f"line {lineno}", detections)
-
-
-def parse_plaintext(file_path, text, detections):
-    for lineno, line in enumerate(text.splitlines(), start=1):
-        scan_text_for_patterns(line, file_path, f"line {lineno}", detections)
+    _walk_json(data, "$", file_label, detections)
 
 
 PARSER_DISPATCH = {
-    ".py": parse_py,
-    ".ipynb": parse_ipynb,
-    ".json": parse_json,
-    ".jsonl": parse_jsonl,
-    ".env": parse_plaintext,
-    ".yaml": parse_plaintext,
-    ".yml": parse_plaintext,
-    ".txt": parse_plaintext,
+    ".py": parse_python,
+    ".js": parse_js_ts,
+    ".ts": parse_js_ts,
+    ".yaml": parse_text_config,
+    ".yml": parse_text_config,
+    ".toml": parse_text_config,
+    ".txt": parse_text_config,  # e.g. requirements.txt dependency pins
+    ".json": parse_json_config,
 }
+
+
+def parse_target(label, text, detections):
+    """label: file path or virtual path string; used both to pick the
+    parser (via its suffix) and as the 'file' field in evidence records."""
+    suffix = Path(label).suffix.lower()
+    handler = PARSER_DISPATCH.get(suffix)
+    if handler is None:
+        return
+    try:
+        handler(label, text, detections)
+    except Exception as e:
+        print(f"[!] Unexpected error parsing {label}: {e}")

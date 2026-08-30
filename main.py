@@ -3,10 +3,9 @@ import os
 import sys
 from pathlib import Path
 
-from config import SKIP_DIRS, PARSER_EXTENSIONS, OUTPUT_JSON
-from parsers import PARSER_DISPATCH
-
-TARGET_PATH = r"C:\Users\omarm\Downloads\rag_chain.py"
+from config import TARGET_EXTENSIONS, EXCLUDE_DIRS, OUTPUT_JSON
+from parsers import parse_target
+from reader import fetch_repo_files, GitHubFetchError
 
 detections = {}  # tech -> category -> value -> set(locations)
 
@@ -30,87 +29,103 @@ def read_text(file_path):
         return None
 
 
-def scan_file(file_path):
-    suffix = file_path.suffix.lower()
-    handler = PARSER_DISPATCH.get(suffix)
-    if handler is None:
-        return
-    text = read_text(file_path)
-    if text is None:
-        return
-    try:
-        handler(file_path, text, detections)
-    except json.JSONDecodeError as e:
-        print(f"[!] JSONDecodeError in {file_path}: {e}")
-    except UnicodeDecodeError as e:
-        print(f"[!] UnicodeDecodeError in {file_path}: {e}")
-    except Exception as e:
-        print(f"[!] Unexpected error scanning {file_path}: {e}")
-
-
-def collect_files(target_path):
+def collect_local_files(target_path):
     target = Path(target_path)
     files = []
     if target.is_file():
-        if target.suffix.lower() in PARSER_EXTENSIONS:
+        if target.suffix.lower() in TARGET_EXTENSIONS:
             files.append(target)
+        else:
+            print(f"[!] Skipping unsupported extension: {target}")
     elif target.is_dir():
         for root, dirs, filenames in os.walk(target):
-            dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+            dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
             for fname in filenames:
                 fpath = Path(root) / fname
-                if fpath.suffix.lower() in PARSER_EXTENSIONS:
+                if fpath.suffix.lower() in TARGET_EXTENSIONS:
                     files.append(fpath)
     else:
         print(f"[!] Target not found: {target_path}")
     return files
 
 
+def scan_local_targets(files):
+    scanned_labels = []
+    for fpath in files:
+        text = read_text(fpath)
+        if text is None:
+            continue
+        label = str(fpath)
+        parse_target(label, text, detections)
+        scanned_labels.append(label)
+    return scanned_labels
+
+
+def scan_in_memory_targets(pairs):
+    """pairs: list of (virtual_path_str, text_content)"""
+    scanned_labels = []
+    for label, text in pairs:
+        parse_target(label, text, detections)
+        scanned_labels.append(label)
+    return scanned_labels
+
+
 def build_catalog():
+    """Builds the ai_detection_catalog.json deliverable. Each technology
+    entry keeps the aggregated 'signals' block (unique marker values per
+    category) and adds an 'evidence' list — one record per distinct
+    (signal, file, evidence) occurrence — carrying the exact file and
+    matched snippet that proves usage, e.g.:
+        {"technology": "OpenAI", "signal": "package_dependency",
+         "file": "requirements.txt", "evidence": "openai==2.x"}
+    """
     catalog = []
-    for tech, categories in detections.items():
+    for tech, data in detections.items():
+        categories = data["categories"]
         signals = {}
         for category in (
             "packages", "imports", "environment_variables", "endpoints",
             "code_patterns", "docker_images", "models", "extensions_and_metrics",
         ):
-            values = sorted(categories.get(category, {}).keys())
+            values = sorted(categories.get(category, set()))
             signals[category] = values
-        catalog.append({"technology": tech, "signals": signals})
+
+        evidence = [
+            {
+                "technology": tech,
+                "signal": signal_label,
+                "file": file_label,
+                "evidence": evidence_text,
+            }
+            for signal_label, file_label, evidence_text in sorted(data["occurrences"])
+        ]
+
+        catalog.append({
+            "technology": tech,
+            "signals": signals,
+            "evidence": evidence,
+        })
     return catalog
 
 
-def print_report(files_scanned):
+def print_report(scanned_labels):
+    print("\n" + "=" * 60)
+    print(f"Files/targets scanned: {len(scanned_labels)}")
     print("=" * 60)
-    print(f"Scan target: {TARGET_PATH}")
-    print(f"Files scanned: {len(files_scanned)}")
-    print("=" * 60)
-    total = 0
-    for tech, categories in detections.items():
+    total_occurrences = 0
+    for tech, data in detections.items():
         print(f"\n[Technology] {tech}")
-        for category, values in categories.items():
-            for value, locations in values.items():
-                total += len(locations)
-                loc_str = ", ".join(sorted(locations))
-                print(f"  [{category}] '{value}' -> {loc_str}")
+        for signal_label, file_label, evidence_text in sorted(data["occurrences"]):
+            total_occurrences += 1
+            print(f"  [{signal_label}] {file_label} -> {evidence_text}")
     print("\n" + "=" * 60)
     print(f"AI/ML Markers Detected: {'YES' if detections else 'NO'}")
-    print(f"Total Signal Occurrences: {total}")
+    print(f"Total Evidence Occurrences: {total_occurrences}")
     print(f"Distinct Technologies: {len(detections)}")
     print("=" * 60)
 
 
-def main():
-    files = collect_files(TARGET_PATH)
-    if not files:
-        print("[!] No scannable files found.")
-        sys.exit(1)
-
-    for f in files:
-        scan_file(f)
-
-    print_report(files)
-
+def export_catalog():
     catalog = build_catalog()
     try:
         with open(OUTPUT_JSON, "w", encoding="utf-8") as out:
@@ -118,6 +133,67 @@ def main():
         print(f"\n[+] Catalog written to {OUTPUT_JSON}")
     except OSError as e:
         print(f"[!] Failed to write {OUTPUT_JSON}: {e}")
+
+
+def prompt_local():
+    path_str = input("Enter local file or folder path: ").strip()
+    if not path_str:
+        print("[!] No path provided.")
+        return
+    files = collect_local_files(path_str)
+    if not files:
+        print("[!] No scannable files found under that path.")
+        return
+    print(f"[*] Scanning {len(files)} file(s)...")
+    scanned = scan_local_targets(files)
+    print_report(scanned)
+    export_catalog()
+
+
+def prompt_github():
+    repo_url = input("Enter GitHub repo URL (e.g. https://github.com/owner/repo): ").strip()
+    if not repo_url:
+        print("[!] No URL provided.")
+        return
+    mode = input("Execution mode ['in-memory' / 'file']: ").strip().lower()
+    if mode not in ("in-memory", "file"):
+        print(f"[!] Unrecognized mode '{mode}', defaulting to 'in-memory'.")
+        mode = "in-memory"
+
+    try:
+        result = fetch_repo_files(repo_url, mode=mode)
+    except GitHubFetchError as e:
+        print(f"[!] GitHub fetch failed: {e}")
+        return
+
+    if not result:
+        print("[!] No scannable files retrieved from repository.")
+        return
+
+    if mode == "in-memory":
+        print(f"[*] Scanning {len(result)} file(s) in memory...")
+        scanned = scan_in_memory_targets(result)
+    else:
+        print(f"[*] Scanning {len(result)} extracted file(s) on disk...")
+        scanned = scan_local_targets(result)
+
+    print_report(scanned)
+    export_catalog()
+
+
+def main():
+    print("AI/ML Marker Scanner")
+    print("[1] Scan Local File or Folder")
+    print("[2] Scan Remote GitHub Repository URL")
+    choice = input("Select an option: ").strip()
+
+    if choice == "1":
+        prompt_local()
+    elif choice == "2":
+        prompt_github()
+    else:
+        print("[!] Invalid selection. Exiting.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

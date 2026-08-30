@@ -1,10 +1,37 @@
 [
   {
+    "technology": "Vector Databases",
+    "signals": {
+      "packages": [
+        "chromadb"
+      ],
+      "imports": [],
+      "environment_variables": [],
+      "endpoints": [],
+      "code_patterns": [],
+      "docker_images": [],
+      "models": [],
+      "extensions_and_metrics": []
+    },
+    "evidence": [
+      {
+        "technology": "Vector Databases",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\pyproject.toml",
+        "evidence": "\"chromadb>=1.5.9\","
+      }
+    ]
+  },
+  {
     "technology": "LangChain",
     "signals": {
-      "packages": [],
+      "packages": [
+        "langchain",
+        "langchain-community"
+      ],
       "imports": [
-        "langchain"
+        "langchain",
+        "langchain_core.prompts"
       ],
       "environment_variables": [],
       "endpoints": [],
@@ -12,6 +39,324 @@
       "docker_images": [],
       "models": [],
       "extensions_and_metrics": []
-    }
+    },
+    "evidence": [
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\chains\\prompts.py",
+        "evidence": "from langchain_core.prompts import ("
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\chains\\rag_chain.py",
+        "evidence": "from langchain_core.documents import Document"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\chains\\rag_chain.py",
+        "evidence": "from langchain_core.messages import HumanMessage"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\factory.py",
+        "evidence": "from langchain_core.embeddings import Embeddings"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\openai.py",
+        "evidence": "from langchain_openai import OpenAIEmbeddings"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\ingestion\\loaders.py",
+        "evidence": "from langchain_community.document_loaders import PyPDFLoader"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\ingestion\\loaders.py",
+        "evidence": "from langchain_core.documents import Document"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\ingestion\\splitter.py",
+        "evidence": "from langchain_core.documents import Document"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\ingestion\\splitter.py",
+        "evidence": "from langchain_text_splitters import RecursiveCharacterTextSplitter"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\factory.py",
+        "evidence": "from langchain_core.language_models.chat_models import BaseChatModel"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\openai.py",
+        "evidence": "from langchain_openai import ChatOpenAI"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\retrieval\\retriever.py",
+        "evidence": "from langchain_core.retrievers import BaseRetriever"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\retrieval\\vectorstore.py",
+        "evidence": "from langchain_chroma import Chroma"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\tests\\test_splitter.py",
+        "evidence": "from langchain_core.documents import Document"
+      },
+      {
+        "technology": "LangChain",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\ingestion\\splitter.py",
+        "evidence": "Split LangChain documents into smaller chunks."
+      },
+      {
+        "technology": "LangChain",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\pyproject.toml",
+        "evidence": "\"langchain-chroma>=1.1.0\","
+      },
+      {
+        "technology": "LangChain",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\pyproject.toml",
+        "evidence": "\"langchain-community>=0.4.2\","
+      },
+      {
+        "technology": "LangChain",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\pyproject.toml",
+        "evidence": "\"langchain-openai>=1.4.3\","
+      },
+      {
+        "technology": "LangChain",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\pyproject.toml",
+        "evidence": "\"langchain-text-splitters>=1.1.2\","
+      },
+      {
+        "technology": "LangChain",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\pyproject.toml",
+        "evidence": "\"langchain>=1.3.14\","
+      }
+    ]
+  },
+  {
+    "technology": "OpenAI",
+    "signals": {
+      "packages": [
+        "openai"
+      ],
+      "imports": [
+        "OpenAI",
+        "openai"
+      ],
+      "environment_variables": [
+        "OPENAI_API_KEY"
+      ],
+      "endpoints": [],
+      "code_patterns": [],
+      "docker_images": [],
+      "models": [
+        "text-embedding-3-small"
+      ],
+      "extensions_and_metrics": []
+    },
+    "evidence": [
+      {
+        "technology": "OpenAI",
+        "signal": "environment_variable",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\config\\settings.py",
+        "evidence": "openai_api_key: str"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "environment_variable",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\openai.py",
+        "evidence": "api_key=settings.openai_api_key,"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "environment_variable",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\openai.py",
+        "evidence": "api_key=settings.openai_api_key,"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\factory.py",
+        "evidence": "from app.embeddings.openai import get_openai_embeddings"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\factory.py",
+        "evidence": "return get_openai_embeddings()"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\openai.py",
+        "evidence": "from langchain_openai import OpenAIEmbeddings"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\openai.py",
+        "evidence": "return OpenAIEmbeddings("
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\factory.py",
+        "evidence": "from app.llm.openai import get_openai_llm"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\factory.py",
+        "evidence": "return get_openai_llm()"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\openai.py",
+        "evidence": "from langchain_openai import ChatOpenAI"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\openai.py",
+        "evidence": "return ChatOpenAI("
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "model_reference",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\config\\settings.py",
+        "evidence": "embedding_model: str = \"text-embedding-3-small\""
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\factory.py",
+        "evidence": "from app.embeddings.openai import get_openai_embeddings"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\factory.py",
+        "evidence": "from app.llm.openai import get_openai_llm"
+      },
+      {
+        "technology": "OpenAI",
+        "signal": "package_dependency",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\pyproject.toml",
+        "evidence": "\"langchain-openai>=1.4.3\","
+      }
+    ]
+  },
+  {
+    "technology": "Azure OpenAI",
+    "signals": {
+      "packages": [],
+      "imports": [
+        "openai"
+      ],
+      "environment_variables": [],
+      "endpoints": [],
+      "code_patterns": [],
+      "docker_images": [],
+      "models": [],
+      "extensions_and_metrics": []
+    },
+    "evidence": [
+      {
+        "technology": "Azure OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\factory.py",
+        "evidence": "from app.embeddings.openai import get_openai_embeddings"
+      },
+      {
+        "technology": "Azure OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\factory.py",
+        "evidence": "return get_openai_embeddings()"
+      },
+      {
+        "technology": "Azure OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\embeddings\\openai.py",
+        "evidence": "from langchain_openai import OpenAIEmbeddings"
+      },
+      {
+        "technology": "Azure OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\factory.py",
+        "evidence": "from app.llm.openai import get_openai_llm"
+      },
+      {
+        "technology": "Azure OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\factory.py",
+        "evidence": "return get_openai_llm()"
+      },
+      {
+        "technology": "Azure OpenAI",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\llm\\openai.py",
+        "evidence": "from langchain_openai import ChatOpenAI"
+      }
+    ]
+  },
+  {
+    "technology": "Semantic Kernel",
+    "signals": {
+      "packages": [],
+      "imports": [
+        "sk"
+      ],
+      "environment_variables": [],
+      "endpoints": [],
+      "code_patterns": [],
+      "docker_images": [],
+      "models": [],
+      "extensions_and_metrics": []
+    },
+    "evidence": [
+      {
+        "technology": "Semantic Kernel",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\services\\chat_service.py",
+        "evidence": "from app.chains.rag_chain import ask_rag"
+      },
+      {
+        "technology": "Semantic Kernel",
+        "signal": "import_statement",
+        "file": "C:\\Users\\omarm\\Desktop\\RAG_backend-main\\rag-chatbot\\app\\services\\chat_service.py",
+        "evidence": "result = ask_rag("
+      }
+    ]
   }
 ]
