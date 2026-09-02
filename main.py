@@ -160,8 +160,10 @@ def prompt_github():
         print(f"[!] Unrecognized mode '{mode}', defaulting to 'in-memory'.")
         mode = "in-memory"
 
+    token = input("Enter GitHub Access Token (press Enter to skip): ").strip() or None
+
     try:
-        result = fetch_repo_files(repo_url, mode=mode)
+        result = fetch_repo_files(repo_url, mode=mode, github_token=token)
     except GitHubFetchError as e:
         print(f"[!] GitHub fetch failed: {e}")
         return
