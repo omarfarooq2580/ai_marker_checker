@@ -1,0 +1,1 @@
+# to host the webpage run the following command "uvicorn app:app1 --reload --port 8000"

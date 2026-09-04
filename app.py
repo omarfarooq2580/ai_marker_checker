@@ -1,4 +1,8 @@
 """
+AI/ML Marker Scanner — Web Dashboard
+FastAPI backend wiring the existing scanning pipeline (config.py, parsers.py,
+reader.py) into a JSON API + Jinja2 dashboard.
+
 Run with:
     pip install fastapi uvicorn jinja2 python-multipart --break-system-packages
     uvicorn app:app --reload --port 8000
