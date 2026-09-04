@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI/ML Marker Scanner — FastAPI Dashboard</title>
+<title>AI/ML Marker Scanner</title>
 
 <!-- Tailwind CDN + Google Font -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -22,7 +22,7 @@
             bg: '#030712',
             card: '#090d16',
             inset: '#0d1322',
-            border: '#1e293b',
+            border: '#334155',
             cyan: '#38bdf8',
             green: '#34d399',
             red: '#f43f5e',
@@ -36,14 +36,14 @@
 <style>
   body {
     background-color: #030712;
-    color: #cbd5e1;
+    color: #e2e8f0;
     font-family: 'JetBrains Mono', monospace;
   }
 
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #030712; }
-  ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
-  ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
   .hidden { display: none !important; }
 
@@ -58,7 +58,7 @@
   }
 
   .spinner {
-    width: 12px; height: 12px;
+    width: 14px; height: 14px;
     border: 2px solid rgba(255,255,255,0.2);
     border-top-color: #ffffff;
     border-radius: 50%;
@@ -68,41 +68,43 @@
 </style>
 </head>
 
-<body class="min-h-full flex flex-col justify-between border-x border-term-border max-w-6xl mx-auto selection:bg-slate-800 selection:text-white">
+<body class="min-h-full flex flex-col justify-between border-x border-term-border max-w-7xl mx-auto selection:bg-slate-800 selection:text-white">
 
   <!-- TOP HEADER -->
-  <header class="border-b border-term-border bg-term-bg/90 backdrop-blur sticky top-0 z-40">
-    <div class="px-4 sm:px-6 h-12 flex items-center justify-between text-xs">
-      <div class="flex items-center gap-2 font-bold text-white">
-        <span class="text-term-cyan">[AI]</span>
-        <span>AI/ML Marker Scanner</span>
+  <header class="text-center border-b border-term-border bg-term-bg/90 backdrop-blur sticky top-0 z-40">
+    <div class="px-6 sm:px-8 h-14 flex items-center justify-between text-sm">
+      <div class="flex items-center gap-3 font-bold text-white text-center">
+        <span class="text-term-cyan text-base">[AI_CHECKER]</span>
+        <span class="text-base">AI/ML Marker Scanner</span>
         <span class="text-slate-600 font-normal">|</span>
-        <span class="text-slate-400 font-normal">FastAPI Dashboard</span>
+        <span class="text-slate-300 font-normal">Dashboard</span>
       </div>
-      <span class="border border-term-border bg-term-card px-2 py-0.5 text-[11px] text-slate-400">[Theme: Dark Terminal]</span>
     </div>
   </header>
 
   <!-- MAIN CONTENT AREA -->
-  <main class="p-4 sm:p-6 w-full flex-1 space-y-6">
+  <main class="p-6 sm:p-8 w-full flex-1 space-y-8">
 
     <!-- TARGET SELECTION FORM SECTION -->
     <section>
-      <div class="text-[11px] font-bold text-white uppercase tracking-wider mb-2">
+      <div class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
         TARGET SELECTION
       </div>
 
-      <div class="bg-term-card border border-term-border p-4 sm:p-5">
-        <form id="scanForm" class="space-y-4">
+      <div class="bg-term-card border border-term-border p-6 sm:p-7 space-y-5">
+        <form id="scanForm" class="space-y-5">
+
+          <!-- Fixed execution mode payload value -->
+          <input type="hidden" name="execution_mode" value="in-memory">
 
           <!-- Target Switcher -->
-          <div class="flex flex-wrap items-center gap-6 text-xs">
-            <button type="button" data-target-type="local" data-active="true" class="radio-option tab-btn flex items-center gap-2 text-slate-400 hover:text-white cursor-pointer">
-              <span class="radio-indicator w-3 h-3 rounded-full border border-slate-500 inline-block"></span>
+          <div class="flex flex-wrap items-center gap-8 text-sm">
+            <button type="button" data-target-type="local" data-active="true" class="radio-option tab-btn flex items-center gap-2.5 text-slate-300 hover:text-white cursor-pointer">
+              <span class="radio-indicator w-4 h-4 rounded-full border border-slate-400 inline-block"></span>
               <span>[ Local Directory / File ]</span>
             </button>
-            <button type="button" data-target-type="github" data-active="false" class="radio-option tab-btn flex items-center gap-2 text-slate-400 hover:text-white cursor-pointer">
-              <span class="radio-indicator w-3 h-3 rounded-full border border-slate-500 inline-block"></span>
+            <button type="button" data-target-type="github" data-active="false" class="radio-option tab-btn flex items-center gap-2.5 text-slate-300 hover:text-white cursor-pointer">
+              <span class="radio-indicator w-4 h-4 rounded-full border border-slate-400 inline-block"></span>
               <span>Remote GitHub Repository</span>
             </button>
             <input type="hidden" name="target_type" id="target_type" value="local">
@@ -110,45 +112,29 @@
 
           <!-- Target Path Input -->
           <div>
-            <label for="target_path" class="block text-xs text-slate-400 mb-1" id="targetPathLabel">Target Path / URL:</label>
+            <label for="target_path" class="block text-sm text-slate-300 mb-2 font-medium" id="targetPathLabel">Target Path / URL:</label>
             <input required type="text" id="target_path" name="target_path"
               placeholder="/Users/username/projects/my-ai-app"
-              class="w-full bg-term-inset border border-term-border px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-term-cyan font-mono">
+              class="w-full bg-term-inset border border-term-border px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-term-cyan font-mono rounded-sm">
           </div>
 
-          <!-- GitHub Fields -->
-          <div id="githubFields" class="hidden space-y-4">
+          <!-- GitHub Access Token (Toggle Driven) -->
+          <div id="githubFields" class="hidden">
             <div>
-              <label for="github_token" class="block text-xs text-slate-400 mb-1">GitHub Access Token (Optional):</label>
+              <label for="github_token" class="block text-sm text-slate-300 mb-2 font-medium">GitHub Access Token (Optional):</label>
               <input type="password" id="github_token" name="github_token" 
                 placeholder="ghp_************************************"
-                class="w-full bg-term-inset border border-term-border px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-term-cyan font-mono">
-            </div>
-
-            <div>
-              <label class="block text-xs text-slate-400 mb-1.5">Execution Mode:</label>
-              <div class="flex flex-wrap gap-6 text-xs">
-                <label for="mode_memory" class="radio-option mode-card flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white">
-                  <input type="radio" name="execution_mode" id="mode_memory" value="in-memory" checked class="hidden">
-                  <span class="radio-indicator w-3 h-3 rounded-full border border-slate-500 inline-block"></span>
-                  <span>In-Memory Processing</span>
-                </label>
-                <label for="mode_file" class="radio-option mode-card flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white">
-                  <input type="radio" name="execution_mode" id="mode_file" value="file" class="hidden">
-                  <span class="radio-indicator w-3 h-3 rounded-full border border-slate-500 inline-block"></span>
-                  <span>Download Local Directory Extraction</span>
-                </label>
-              </div>
+                class="w-full bg-term-inset border border-term-border px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-term-cyan font-mono rounded-sm">
             </div>
           </div>
 
           <!-- Submit Controls -->
-          <div class="flex items-center gap-3 pt-2">
-            <button type="submit" id="submitBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-xs font-bold px-4 py-2 flex items-center gap-2 transition-all">
+          <div class="flex items-center gap-4 pt-2">
+            <button type="submit" id="submitBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-sm font-bold px-6 py-3 flex items-center gap-3 transition-all rounded-sm cursor-pointer">
               <span id="submitSpinner" class="spinner hidden"></span>
               <span id="submitLabel">[ &gt; RUN SCANNER ENGINE ]</span>
             </button>
-            <span id="formError" class="text-xs text-term-red bg-rose-950/40 border border-rose-900/50 px-3 py-1.5 hidden"></span>
+            <span id="formError" class="text-sm text-term-red bg-rose-950/50 border border-rose-800 px-4 py-2.5 rounded-sm hidden"></span>
           </div>
 
         </form>
@@ -156,39 +142,39 @@
     </section>
 
     <!-- SCAN RESULTS SECTION -->
-    <section id="resultsSection" class="hidden space-y-6">
+    <section id="resultsSection" class="hidden space-y-8">
 
       <div>
-        <div class="text-[11px] font-bold text-white uppercase tracking-wider mb-2">SCAN RESULTS SUMMARY</div>
+        <div class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">SCAN RESULTS SUMMARY</div>
         <div class="grid grid-cols-1 sm:grid-cols-3 border border-term-border bg-term-card">
-          <div class="p-3 border-b sm:border-b-0 sm:border-r border-term-border flex justify-between items-center text-xs">
-            <span class="text-slate-400">Scanned Files:</span>
-            <span id="statFiles" class="font-bold text-term-cyan text-sm">0</span>
+          <div class="p-4 sm:p-5 border-b sm:border-b-0 sm:border-r border-term-border flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Scanned Files:</span>
+            <span id="statFiles" class="font-bold text-term-cyan text-lg">0</span>
           </div>
-          <div class="p-3 border-b sm:border-b-0 sm:border-r border-term-border flex justify-between items-center text-xs">
-            <span class="text-slate-400">Detected Tech:</span>
-            <span id="statTech" class="font-bold text-term-cyan text-sm">0</span>
+          <div class="p-4 sm:p-5 border-b sm:border-b-0 sm:border-r border-term-border flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Detected Tech:</span>
+            <span id="statTech" class="font-bold text-term-cyan text-lg">0</span>
           </div>
-          <div class="p-3 flex justify-between items-center text-xs">
-            <span class="text-slate-400">Evidence Hits:</span>
-            <span id="statEvidence" class="font-bold text-term-cyan text-sm">0</span>
+          <div class="p-4 sm:p-5 flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Evidence Hits:</span>
+            <span id="statEvidence" class="font-bold text-term-cyan text-lg">0</span>
           </div>
         </div>
       </div>
 
       <div>
-        <div class="flex items-center justify-between mb-2">
-          <div class="text-[11px] font-bold text-white uppercase tracking-wider">
-            DETECTION CATALOG <span class="text-slate-500 font-normal">(ai_detection_catalog.json)</span>
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            DETECTION CATALOG <span class="text-slate-400 font-normal">(ai_detection_catalog.json)</span>
           </div>
-          <button id="exportBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-xs px-3 py-1">
+          <button id="exportBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-xs px-4 py-2 cursor-pointer transition-colors">
             [ Export JSON ]
           </button>
         </div>
 
-        <div id="catalogContainer" class="space-y-4"></div>
+        <div id="catalogContainer" class="space-y-6"></div>
 
-        <div id="emptyState" class="hidden text-center py-10 text-slate-500 text-xs border border-dashed border-term-border bg-term-card">
+        <div id="emptyState" class="hidden text-center py-12 text-slate-400 text-sm border border-dashed border-term-border bg-term-card">
           No AI/ML markers detected in the provided target location.
         </div>
       </div>
@@ -196,16 +182,15 @@
     </section>
 
     <!-- Placeholder State -->
-    <section id="placeholderState" class="text-center py-10 text-slate-500 text-xs border border-dashed border-term-border bg-term-card">
-      System Ready. Select target parameters above and click "[ &gt; RUN SCANNER ENGINE ]".
+    <section id="placeholderState" class="text-center py-12 text-slate-400 text-sm border border-dashed border-term-border bg-term-card">
+      Select target parameters above and click "[ &gt; RUN SCANNER ENGINE ]".
     </section>
 
   </main>
 
   <!-- FOOTER -->
-  <footer class="border-t border-term-border p-4 text-xs text-slate-500 flex flex-col sm:flex-row justify-between gap-2">
-    <p>AI/ML Marker Scanner &bull; Fast Code Parsing Interface</p>
-    <p>FastAPI Template Engine</p>
+  <footer class="text-center border-t border-term-border p-5 text-sm text-slate-400 flex flex-col sm:flex-row justify-between gap-2">
+    <p>AI/ML Marker Scanner</p>
   </footer>
 
 <script>
@@ -278,15 +263,15 @@
   function renderInlineBlock(label, values) {
     if (!values || values.length === 0) return '';
     const joined = values.map(v => escapeHtml(v)).join(', ');
-    return `<span><strong class="text-slate-500 font-normal">${label}:</strong> [ ${joined} ]</span>`;
+    return `<span><strong class="text-slate-400 font-semibold">${label}:</strong> [ <span class="text-slate-100">${joined}</span> ]</span>`;
   }
 
   function renderEvidenceLine(item) {
-    return `<div class="text-xs">
-      <span class="text-slate-500">* [${escapeHtml(item.signal)}]</span>
-      <span class="text-slate-300">${escapeHtml(item.file)}</span>
-      <span class="text-slate-600">-&gt;</span>
-      <span class="text-term-cyan">${escapeHtml(item.evidence)}</span>
+    return `<div class="text-sm py-1 border-b border-slate-800/80 last:border-0 leading-relaxed">
+      <span class="text-slate-400 font-medium">* [${escapeHtml(item.signal)}]</span>
+      <span class="text-slate-200">${escapeHtml(item.file)}</span>
+      <span class="text-slate-500 mx-1">-&gt;</span>
+      <span class="text-term-cyan font-semibold">${escapeHtml(item.evidence)}</span>
     </div>`;
   }
 
@@ -294,25 +279,25 @@
     const inlineCategories = Object.entries(entry.signals)
       .map(([key, values]) => renderInlineBlock(CATEGORY_LABELS[key] || key, values))
       .filter(Boolean)
-      .join(' &nbsp;|&nbsp; ');
+      .join(' &nbsp;<span class="text-slate-600">|</span>&nbsp; ');
 
     const evidenceLines = entry.evidence.map(renderEvidenceLine).join('');
 
     return `
-      <div class="bg-term-card border border-term-border p-4 space-y-3">
-        <div class="flex items-center justify-between border-b border-term-border pb-2">
-          <h3 class="text-xs font-bold text-white uppercase">BOX ${index + 1}: ${escapeHtml(entry.technology)}</h3>
-          <span class="text-term-green font-bold text-xs">Status: DETECTED</span>
+      <div class="bg-term-card border border-term-border p-6 space-y-4 rounded-sm">
+        <div class="flex items-center justify-between border-b border-term-border pb-3">
+          <h3 class="text-sm sm:text-base font-bold text-white uppercase tracking-wide">BOX ${index + 1}: ${escapeHtml(entry.technology)}</h3>
+          <span class="text-term-green font-bold text-xs sm:text-sm bg-emerald-950/40 border border-emerald-800 px-3 py-1 rounded-sm">Status: DETECTED</span>
         </div>
 
-        <div class="bg-term-inset border border-term-border p-2.5 text-xs text-slate-300 overflow-x-auto">
+        <div class="bg-term-inset border border-term-border p-4 text-xs sm:text-sm text-slate-300 overflow-x-auto leading-relaxed">
           ${inlineCategories || '<span class="text-slate-500">No categorized signals.</span>'}
         </div>
 
-        <div class="space-y-1 pt-1">
-          <div class="text-[10px] font-bold text-white uppercase tracking-wider">EVIDENCE HIGHLIGHTS:</div>
-          <div class="bg-term-inset border border-term-border p-3 space-y-1 max-h-48 overflow-y-auto">
-            ${evidenceLines || '<div class="text-xs text-slate-500">* No specific code hits.</div>'}
+        <div class="space-y-2 pt-1">
+          <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">EVIDENCE HIGHLIGHTS:</div>
+          <div class="bg-term-inset border border-term-border p-4 space-y-1.5 max-h-64 overflow-y-auto">
+            ${evidenceLines || '<div class="text-sm text-slate-500">* No specific code hits.</div>'}
           </div>
         </div>
       </div>`;
