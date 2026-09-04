@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI/ML Marker Scanner — Dashboard</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/3.4.1/tailwind.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          slate: {
+            750: '#1e293b',
+            850: '#0f172a',
+            950: '#020617',
+          },
+          brand: {
+            500: '#6366f1',
+            600: '#4f46e5',
+            700: '#4338ca',
+          }
+        },
+        fontFamily: {
+          sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  body {
+    background-color: #030712;
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
+      radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.05), transparent 40%);
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #020617; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+  .spinner {
+    width: 1.25rem; height: 1.25rem;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .fade-in { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tab-btn[data-active="true"] {
+    background-color: #4f46e5;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  }
+
+  .mode-card:has(input:checked) {
+    border-color: #6366f1;
+    background-color: rgba(99, 102, 241, 0.1);
+  }
+  .mode-card:has(input:checked) .mode-indicator {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
+  }
+</style>
+</head>
+
+<body class="min-h-full font-sans text-slate-200 antialiased flex flex-col justify-between">
+
+  <!-- ===================== TOP HEADER ===================== -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-brand-500/20 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" class="w-5 h-5">
+            <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke-linejoin="round"/>
+            <path d="M3 7l9 5 9-5M12 12v10" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-bold text-white tracking-wide">AI/ML MARKER SCANNER</h1>
+            <span class="text-[10px] font-mono bg-brand-500/10 text-brand-400 border border-brand-500/20 px-1.5 py-0.2 rounded font-semibold">FastAPI</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Automated AI/ML dependency & codebase signal analysis</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          REST API Ready
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ===================== MAIN CONTENT AREA ===================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+
+    <!-- CONFIGURATION SECTION -->
+    <section class="bg-slate-900/90 border border-slate-800/90 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm">
+      <div class="max-w-3xl mb-6">
+        <h2 class="text-lg font-bold text-white tracking-tight">Scan Configuration</h2>
+        <p class="text-xs text-slate-400 mt-1">Select a scanning target to start analyzing dependencies, imports, model artifacts, and environment variables.</p>
+      </div>
+
+      <form id="scanForm" class="space-y-6">
+
+        <!-- Target Type Switcher -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Target Source</label>
+          <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 inline-flex w-full sm:w-auto">
+            <button type="button" data-target-type="local" data-active="true"
+              class="tab-btn flex-1 sm:flex-none text-xs font-semibold px-6 py-2.5 rounded-lg text-slate-400 hover:text-white transition-all">
+              📂 Local Folder Path
+            </button>
+            <button type="button" data-target-type="github" data-active="false"
+              class="tab-btn flex-1 sm:flex-none text-xs font-semibold px-6 py-2.5 rounded-lg text-slate-400 hover:text-white transition-all">
+              🐙 Remote GitHub Repository
+            </button>
+            <input type="hidden" name="target_type" id="target_type" value="local">
+          </div>
+        </div>
+
+        <!-- Target Input Path -->
+        <div>
+          <label for="target_path" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2" id="targetPathLabel">
+            Target Directory Path
+          </label>
+          <input required type="text" id="target_path" name="target_path"
+            placeholder="/Users/username/projects/my-ai-app"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all shadow-inner">
+        </div>
+
+        <!-- Optional GitHub Fields -->
+        <div id="githubFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          <div>
+            <label for="github_token" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+              GitHub Personal Access Token <span class="text-slate-500 lowercase font-normal">(optional)</span>
+            </label>
+            <input type="password" id="github_token" name="github_token" placeholder="ghp_••••••••••••••••••••••••"
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Execution Mode</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label for="mode_memory" class="mode-card flex items-center gap-3 cursor-pointer bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 transition-all hover:border-slate-700">
+                <input type="radio" name="execution_mode" id="mode_memory" value="in-memory" checked class="sr-only">
+                <span class="mode-indicator w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all shrink-0"></span>
+                <span class="text-xs font-semibold text-slate-300">In-Memory</span>
+              </label>
+              <label for="mode_file" class="mode-card flex items-center gap-3 cursor-pointer bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 transition-all hover:border-slate-700">
+                <input type="radio" name="execution_mode" id="mode_file" value="file" class="sr-only">
+                <span class="mode-indicator w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all shrink-0"></span>
+                <span class="text-xs font-semibold text-slate-300">Local Extract</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="pt-2 flex items-center gap-4">
+          <button type="submit" id="submitBtn"
+            class="inline-flex items-center justify-center gap-2.5 bg-brand-600 hover:bg-brand-500 active:bg-brand-700 text-white text-sm font-bold px-7 py-3.5 rounded-xl transition-all shadow-lg shadow-brand-600/30 disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
+            <span id="submitSpinner" class="spinner hidden"></span>
+            <span id="submitLabel">Run Scanner Engine</span>
+          </button>
+          <span id="formError" class="text-xs font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-4 py-3 rounded-xl hidden"></span>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- RESULTS DASHBOARD (Hidden until scan executed) -->
+    <section id="resultsSection" class="hidden space-y-6">
+
+      <!-- Metrics Panel Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 shadow-xl">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Scanned Files</p>
+          <p id="statFiles" class="text-3xl font-extrabold text-white font-mono tracking-tight mt-2">0</p>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 shadow-xl">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Detected Technologies</p>
+          <p id="statTech" class="text-3xl font-extrabold text-cyan-400 font-mono tracking-tight mt-2">0</p>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 shadow-xl">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Evidence Highlights</p>
+          <p id="statEvidence" class="text-3xl font-extrabold text-emerald-400 font-mono tracking-tight mt-2">0</p>
+        </div>
+      </div>
+
+      <!-- Detection Catalog Header -->
+      <div class="flex items-center justify-between pt-4">
+        <div>
+          <h2 class="text-lg font-bold text-white tracking-tight">Detection Catalog</h2>
+          <p class="text-xs text-slate-400">Items extracted from `ai_detection_catalog.json`</p>
+        </div>
+        <button id="exportBtn"
+          class="inline-flex items-center gap-2 text-xs font-semibold text-slate-200 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 px-4 py-2.5 rounded-xl transition-all shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-slate-400">
+            <path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Export Deliverable JSON
+        </button>
+      </div>
+
+      <!-- Dynamic Cards Container -->
+      <div id="catalogContainer" class="grid grid-cols-1 gap-4"></div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden text-center py-16 text-slate-400 text-sm border border-dashed border-slate-800 bg-slate-900/40 rounded-2xl">
+        <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-500">🔍</div>
+        No AI/ML markers detected in the provided target location.
+      </div>
+    </section>
+
+    <!-- Default Placeholder State -->
+    <section id="placeholderState" class="text-center py-20 text-slate-400 border border-dashed border-slate-800/80 bg-slate-900/30 rounded-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center justify-center mx-auto mb-3">⚡</div>
+      <p class="font-bold text-slate-200 text-base">Dashboard Ready</p>
+      <p class="text-xs text-slate-400 mt-1">Specify a target path or GitHub URL above and click "Run Scanner Engine".</p>
+    </section>
+
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="border-t border-slate-800/80 bg-slate-950/50 py-6 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+      <p>AI/ML Marker Scanner &bull; Fast, local code parsing interface</p>
+      <p class="font-mono text-slate-400">FastAPI Template Engine</p>
+    </div>
+  </footer>
+
+<script>
+  const state = { targetType: 'local' };
+
+  // ---------- TAB CONTROL ----------
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const targetTypeInput = document.getElementById('target_type');
+  const targetPathInput = document.getElementById('target_path');
+  const targetPathLabel = document.getElementById('targetPathLabel');
+  const githubFields = document.getElementById('githubFields');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.dataset.active = 'false');
+      btn.dataset.active = 'true';
+      state.targetType = btn.dataset.targetType;
+      targetTypeInput.value = state.targetType;
+
+      if (state.targetType === 'github') {
+        githubFields.classList.remove('hidden');
+        targetPathLabel.textContent = 'GitHub Repository URL';
+        targetPathInput.placeholder = 'https://github.com/organization/repository';
+      } else {
+        githubFields.classList.add('hidden');
+        targetPathLabel.textContent = 'Target Directory Path';
+        targetPathInput.placeholder = '/Users/username/projects/my-ai-app';
+      }
+    });
+  });
+
+  // ---------- FORM LOGIC ----------
+  const form = document.getElementById('scanForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const submitSpinner = document.getElementById('submitSpinner');
+  const submitLabel = document.getElementById('submitLabel');
+  const formError = document.getElementById('formError');
+
+  const resultsSection = document.getElementById('resultsSection');
+  const placeholderState = document.getElementById('placeholderState');
+  const emptyState = document.getElementById('emptyState');
+  const catalogContainer = document.getElementById('catalogContainer');
+
+  const statFiles = document.getElementById('statFiles');
+  const statTech = document.getElementById('statTech');
+  const statEvidence = document.getElementById('statEvidence');
+
+  const CATEGORY_LABELS = {
+    packages: 'Packages',
+    imports: 'Imports',
+    environment_variables: 'Env Vars',
+    endpoints: 'Endpoints',
+    code_patterns: 'Code Patterns',
+    docker_images: 'Docker Images',
+    models: 'Models',
+    extensions_and_metrics: 'Extensions / Metrics',
+  };
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+  }
+
+  function renderPills(values) {
+    return values.map(v =>
+      `<span class="inline-block text-xs font-mono text-cyan-300 bg-cyan-950/80 border border-cyan-500/30 rounded-md px-2.5 py-1">${escapeHtml(v)}</span>`
+    ).join('');
+  }
+
+  function renderCategoryBlock(label, values) {
+    if (!values || values.length === 0) return '';
+    return `
+      <div>
+        <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">${label}</p>
+        <div class="flex flex-wrap gap-1.5">${renderPills(values)}</div>
+      </div>`;
+  }
+
+  function renderEvidenceLine(item) {
+    return `<div class="py-2 border-b border-slate-800/80 last:border-0 flex items-start gap-2 text-xs font-mono">
+      <span class="text-cyan-400 font-semibold shrink-0">[${escapeHtml(item.signal)}]</span>
+      <span class="text-slate-400 shrink-0 font-medium">${escapeHtml(item.file)}</span>
+      <span class="text-slate-600 shrink-0">&rarr;</span>
+      <span class="text-slate-200 break-all">${escapeHtml(item.evidence)}</span>
+    </div>`;
+  }
+
+  function renderTechCard(entry) {
+    const categoryBlocks = Object.entries(entry.signals)
+      .map(([key, values]) => renderCategoryBlock(CATEGORY_LABELS[key] || key, values))
+      .filter(Boolean)
+      .join('');
+
+    const evidenceLines = entry.evidence.map(renderEvidenceLine).join('');
+
+    return `
+      <div class="fade-in bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="flex items-center justify-between px-6 py-4 bg-slate-950/60 border-b border-slate-800">
+          <div class="flex items-center gap-3">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>
+            <h3 class="text-base font-bold text-white tracking-tight">${escapeHtml(entry.technology)}</h3>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3 py-1">
+            DETECTED
+          </span>
+        </div>
+
+        <div class="p-6 space-y-5">
+          ${categoryBlocks || '<p class="text-xs text-slate-500">No categorized signals found.</p>'}
+
+          <div class="pt-2">
+            <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
+              Evidence Hits (${entry.evidence.length})
+            </p>
+            <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3.5 max-h-56 overflow-y-auto">
+              ${evidenceLines || '<span class="text-xs text-slate-500 font-mono">No specific code snippets matched.</span>'}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderCatalog(catalog) {
+    catalogContainer.innerHTML = '';
+    if (!catalog || catalog.length === 0) {
+      emptyState.classList.remove('hidden');
+      return;
+    }
+    emptyState.classList.add('hidden');
+    catalogContainer.innerHTML = catalog.map(renderTechCard).join('');
+  }
+
+  function setLoading(isLoading) {
+    submitBtn.disabled = isLoading;
+    submitSpinner.classList.toggle('hidden', !isLoading);
+    submitLabel.textContent = isLoading ? 'Parsing Engine...' : 'Run Scanner Engine';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formError.classList.add('hidden');
+    setLoading(true);
+    placeholderState.classList.add('hidden');
+
+    try {
+      const formData = new FormData(form);
+      const res = await fetch('/api/scan', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Scan failed to complete.');
+      }
+
+      statFiles.textContent = data.metrics.files_scanned;
+      statTech.textContent = data.metrics.technologies_detected;
+      statEvidence.textContent = data.metrics.evidence_matches;
+
+      renderCatalog(data.catalog);
+      resultsSection.classList.remove('hidden');
+    } catch (err) {
+      formError.textContent = err.message;
+      formError.classList.remove('hidden');
+      placeholderState.classList.remove('hidden');
+      resultsSection.classList.add('hidden');
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  // ---------- EXPORT JSON ----------
+  document.getElementById('exportBtn').addEventListener('click', async () => {
+    const res = await fetch('/api/export-json');
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || 'Please run a scan first before exporting.');
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai_detection_catalog.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+</script>
+
+</body>
+</html>
