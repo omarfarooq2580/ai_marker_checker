@@ -1,11 +1,6 @@
 """
 AI/ML Marker Scanner — Web Dashboard
-FastAPI backend wiring the existing scanning pipeline (config.py, parsers.py,
-reader.py) into a JSON API + Jinja2 dashboard.
-
-Run with:
-    pip install fastapi uvicorn jinja2 python-multipart --break-system-packages
-    uvicorn app:app --reload --port 8000
+FastAPI backend wiring the scanning pipeline into a JSON API + Jinja2 dashboard + CrewAI integration.
 """
 
 import json
@@ -15,27 +10,20 @@ import traceback
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from config import TARGET_EXTENSIONS, EXCLUDE_DIRS, OUTPUT_JSON, SIGNAL_LABELS
 from parsers import parse_target
 from reader import fetch_repo_files, GitHubFetchError
+import crew_analyzer
 
 app1 = FastAPI(title="AI/ML Marker Scanner")
 templates = Jinja2Templates(directory="templates")
 
-# Holds the most recently generated catalog so /api/export-json can serve it
-# without forcing a re-scan. Simple in-process cache — fine for a single-user
-# / demo deployment; swap for a real store (redis, db) for multi-worker prod.
-_LAST_RUN = {"catalog": None, "generated_at": None}
+_LAST_RUN = {"catalog": None, "generated_at": None, "repo_name": "local-scan"}
 
-
-# --------------------------------------------------------------------------
-# Scanning helpers (request-scoped; each call gets its own `detections` dict
-# so concurrent requests never share mutable state)
-# --------------------------------------------------------------------------
 
 def read_text(file_path: Path) -> Optional[str]:
     try:
@@ -119,7 +107,6 @@ def build_catalog(detections):
             "evidence": evidence,
         })
 
-    # Sort by most evidence first — busiest / most-confident detections lead
     catalog.sort(key=lambda entry: len(entry["evidence"]), reverse=True)
     return catalog
 
@@ -133,10 +120,6 @@ def compute_metrics(catalog, files_scanned):
     }
 
 
-# --------------------------------------------------------------------------
-# Routes
-# --------------------------------------------------------------------------
-
 @app1.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
@@ -144,10 +127,10 @@ async def index(request: Request):
 
 @app1.post("/api/scan")
 async def api_scan(
-    target_type: str = Form(...),        # "local" | "github"
+    target_type: str = Form(...),
     target_path: str = Form(...),
     github_token: str = Form(""),
-    execution_mode: str = Form("in-memory"),  # "in-memory" | "file"
+    execution_mode: str = Form("in-memory"),
 ):
     detections = {}
     scanned_labels = []
@@ -164,6 +147,7 @@ async def api_scan(
                     content={"success": False, "error": "No scannable files found under that path."},
                 )
             scanned_labels = scan_local_targets(files, detections)
+            _LAST_RUN["repo_name"] = Path(target_path.strip()).name or "local-scan"
 
         elif target_type == "github":
             token = github_token.strip() or None
@@ -183,6 +167,8 @@ async def api_scan(
                 scanned_labels = scan_in_memory_targets(result, detections)
             else:
                 scanned_labels = scan_local_targets(result, detections)
+
+            _LAST_RUN["repo_name"] = target_path.strip().split("/")[-1].replace(".git", "") or "github-repo"
 
         else:
             return JSONResponse(
@@ -206,9 +192,29 @@ async def api_scan(
             "warnings": warnings,
         })
 
-    except Exception as e:  # noqa: BLE001 — surface unexpected errors to the UI instead of a bare 500
+    except Exception as e:
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"success": False, "error": f"Unexpected server error: {e}"})
+
+
+@app1.post("/api/analyze-crew")
+async def analyze_crew():
+    """Triggers CrewAI multi-agent reasoning over last scan findings."""
+    catalog_data = _LAST_RUN.get("catalog")
+    repo_name = _LAST_RUN.get("repo_name", "scanned-repo")
+
+    if catalog_data is None:
+        raise HTTPException(
+            status_code=400,
+            detail="No scan results available yet. Run a repository scan first."
+        )
+
+    try:
+        analysis_result = await crew_analyzer.run_crew_analysis(catalog_data, repository_name=repo_name)
+        return JSONResponse(content={"success": True, "data": analysis_result})
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"CrewAI execution error: {str(e)}")
 
 
 @app1.get("/api/export-json")
