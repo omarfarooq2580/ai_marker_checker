@@ -26,6 +26,7 @@
             cyan: '#38bdf8',
             green: '#34d399',
             red: '#f43f5e',
+            purple: '#a855f7',
           }
         }
       }
@@ -167,12 +168,40 @@
           <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">
             DETECTION CATALOG <span class="text-slate-400 font-normal">(ai_detection_catalog.json)</span>
           </div>
-          <button id="exportBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-xs px-4 py-2 cursor-pointer transition-colors">
-            [ Export JSON ]
-          </button>
+          <div class="flex gap-3">
+            <button id="exportBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-xs px-4 py-2 cursor-pointer transition-colors">
+              [ Export JSON ]
+            </button>
+            <button id="btnCrew" class="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-700 text-term-purple text-xs font-bold px-4 py-2 cursor-pointer transition-colors flex items-center gap-2">
+              <span id="crewSpinner" class="spinner hidden"></span>
+              <span id="crewLabel">[ 🤖 RUN AI ANALYSIS ]</span>
+            </button>
+          </div>
         </div>
 
-        <div id="catalogContainer" class="space-y-6"></div>
+        <!-- Dynamic Split Workspace Grid -->
+        <div id="splitWorkspace" class="grid grid-cols-1 transition-all duration-300">
+          
+          <!-- Detection Catalog Box (Left Side when split) -->
+          <div id="catalogBox" class="w-full space-y-6">
+            <div id="catalogContainer" class="space-y-6"></div>
+          </div>
+
+          <!-- AI Architecture Analysis Box (Right Side when split) -->
+          <div id="analysisBox" class="hidden w-full pl-0 lg:pl-4 mt-6 lg:mt-0">
+            <div class="bg-term-card border border-purple-800/80 p-6 space-y-4 rounded-sm sticky top-20">
+              <div class="flex items-center justify-between border-b border-purple-800/60 pb-3">
+                <h3 class="text-sm sm:text-base font-bold text-term-purple uppercase tracking-wide">🤖 AI Architecture Deliverable</h3>
+                <span class="text-term-cyan font-bold text-xs bg-slate-900 border border-slate-700 px-3 py-1 rounded-sm">CrewAI Engine</span>
+              </div>
+              <div class="space-y-2">
+                <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">SYSTEM CLASSIFICATION JSON:</div>
+                <pre id="analysisOutput" class="bg-term-inset border border-term-border p-4 text-xs text-emerald-400 max-h-[600px] overflow-y-auto whitespace-pre-wrap leading-relaxed">Click "[ 🤖 RUN AI ANALYSIS ]" to execute agent verification...</pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
 
         <div id="emptyState" class="hidden text-center py-12 text-slate-400 text-sm border border-dashed border-term-border bg-term-card">
           No AI/ML markers detected in the provided target location.
@@ -240,6 +269,13 @@
   const statFiles = document.getElementById('statFiles');
   const statTech = document.getElementById('statTech');
   const statEvidence = document.getElementById('statEvidence');
+
+  const splitWorkspace = document.getElementById('splitWorkspace');
+  const analysisBox = document.getElementById('analysisBox');
+  const btnCrew = document.getElementById('btnCrew');
+  const crewSpinner = document.getElementById('crewSpinner');
+  const crewLabel = document.getElementById('crewLabel');
+  const analysisOutput = document.getElementById('analysisOutput');
 
   const CATEGORY_LABELS = {
     packages: 'Packages',
@@ -325,6 +361,10 @@
     setLoading(true);
     placeholderState.classList.add('hidden');
 
+    // Reset split view layout on fresh scan
+    splitWorkspace.className = "grid grid-cols-1 transition-all duration-300";
+    analysisBox.classList.add('hidden');
+
     try {
       const formData = new FormData(form);
       const res = await fetch('/api/scan', { method: 'POST', body: formData });
@@ -347,6 +387,35 @@
       resultsSection.classList.add('hidden');
     } finally {
       setLoading(false);
+    }
+  });
+
+  // Handle AI Architecture Split-Screen Toggle & Trigger
+  btnCrew.addEventListener('click', async () => {
+    // Readjust catalog display box to the left grid column and reveal the right box
+    splitWorkspace.className = "grid grid-cols-1 lg:grid-cols-2 gap-4 transition-all duration-300";
+    analysisBox.classList.remove('hidden');
+
+    btnCrew.disabled = true;
+    crewSpinner.classList.remove('hidden');
+    crewLabel.textContent = '[ RUNNING AGENTS... ]';
+    analysisOutput.textContent = "Executing CrewAI Agent Pipeline (Nemotron-3-Ultra)...";
+
+    try {
+      const res = await fetch('/api/analyze-crew', { method: 'POST' });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.detail || 'Analysis failed.');
+      }
+
+      analysisOutput.textContent = JSON.stringify(result.data, null, 2);
+    } catch (err) {
+      analysisOutput.textContent = `Error: ${err.message}`;
+    } finally {
+      btnCrew.disabled = false;
+      crewSpinner.classList.add('hidden');
+      crewLabel.textContent = '[ 🤖 RUN AI ANALYSIS ]';
     }
   });
 
