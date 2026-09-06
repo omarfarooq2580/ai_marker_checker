@@ -9,11 +9,24 @@ openrouter_llm = LLM(
     base_url="https://openrouter.ai/api/v1"
 )
 
+def load_approved_registry():
+    """Loads the approved AI systems registry from the local JSON file."""
+    registry_path = os.path.join(os.path.dirname(__file__), "approved_registry.json")
+    if os.path.exists(registry_path):
+        try:
+            with open(registry_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except(json.JSONDecodeError, OSError):
+            return {"approved_systems": []}
+        return {"approved_systems": []}
+
 async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-repo") -> dict:
     """
-    Executes a CrewAI two-agent workflow over scanner findings.
-    Returns structured JSON matching the target classification schema.
+    Executes a CrewAI two-agent workflow over scanner findings and registry rules.
+    Returns structured JSON matching the target classification and compliance schema.
     """
+    registry = load_approved_registry()
+
     # Agent 1: Primary Evidence Verifier
     signal_verifier = Agent(
         role="Signal Verification Agent",
@@ -27,14 +40,13 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
         verbose=False
     )
 
-    # Agent 2: AI Architecture Synthesizer
+    # Agent 2: AI Architecture Synthesizer & Compliance Classifier
     classifier_agent = Agent(
         role="AI System Classifier Agent",
-        goal="Synthesize verified signals into system architecture classifications and output pure valid JSON.",
+        goal="Synthesize verified signals into system architecture and evaluate provider compliance against approved registries.",
         backstory=(
-            "You are a Lead AI Systems Architect. You analyze verified AI signals to determine "
-            "if the codebase represents a 'RAG application', 'Agentic system', 'Traditional ML', or 'None'. "
-            "You compute confidence scores and output strictly valid JSON matching the exact required schema."
+            "You are a Lead AI Governance & Systems Architect. You analyze verified AI signals to determine "
+            "system type (e.g., RAG application, Agentic system) and evaluate detected providers against approved corporate registries."
         ),
         llm=openrouter_llm,
         verbose=False
@@ -46,21 +58,33 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
             f"Analyze the following scanner catalog findings for repository '{repository_name}':\n\n"
             f"{json.dumps(catalog_data, indent=2)}\n\n"
             "Identify all verified AI libraries, explicitly declared LLM model names, "
-            "vector databases (e.g., Pinecone, ChromaDB), and agent orchestration frameworks (e.g., CrewAI, AutoGen)."
+            "vector databases (e.g., Pinecone, ChromaDB), agent orchestration frameworks (e.g., CrewAI, AutoGen), "
+            "and AI providers/vendors (e.g., Azure OpenAI, OpenAI, Anthropic)."
         ),
-        expected_output="A structured report listing verified AI/ML signals, frameworks, vector DBs, and models.",
+        expected_output="A structured report listing verified AI/ML signals, frameworks, providers, vector DBs, and models.",
         agent=signal_verifier
     )
 
-    # Task 2: Classification Task
+    # Task 2: Classification & Registry Compliance Task
     task_classify = Task(
         description=(
-            "Using the verified signals report, generate the final system classification.\n"
+            f"Using the verified signals report, generate the final system classification and registry compliance analysis.\n\n"
+            f"Approved Registry:\n{json.dumps(registry, indent=2)}\n\n"
+            "REGISTRY COMPLIANCE RULES:\n"
+            "- IGNORE the repository name/field in the Approved Registry. Evaluate ONLY the detected providers and frameworks against the approved list in the registry.\n"
+            "- Assign EXACTLY one of these four status classifications:\n"
+            "  1. SANCTIONED: All detected AI providers/frameworks match an approved provider in the registry.\n"
+            "  2. UNSANCTIONED: AI markers/providers are detected, but they utilize an unauthorized vendor or provider not in the approved registry.\n"
+            "  3. UNKNOWN: Ambiguous signals or insufficient vendor details to determine the provider.\n"
+            "  4. REQUIRES_REVIEW: Borderline, experimental tools, or unverified configurations requiring human oversight.\n\n"
+            "CRITICAL CONSTRAINT: Do NOT classify any system as illegal or non-compliant under any circumstances. Restrict status outputs strictly to the four provided classification categories.\n\n"
             "Format your response EXACTLY as a single raw JSON object matching this schema:\n"
             "{\n"
             f'  "repository": "{repository_name}",\n'
             '  "ai_detected": true/false,\n'
             '  "system_type": "RAG application" | "Agentic system" | "Traditional ML" | "None",\n'
+            '  "classification": "SANCTIONED" | "UNSANCTIONED" | "UNKNOWN" | "REQUIRES_REVIEW",\n'
+            '  "reasoning": "string explaining provider compliance verification",\n'
             '  "providers": ["string"],\n'
             '  "models": ["string"],\n'
             '  "frameworks": ["string"],\n'
@@ -71,7 +95,7 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
             "}\n"
             "Never invent information. If unknown, keep list fields empty. Do NOT include markdown blocks or extra text outside the JSON."
         ),
-        expected_output="A valid raw JSON object matching the architecture classification schema.",
+        expected_output="A valid raw JSON object matching the requested schema containing system classification, registry compliance, and details.",
         agent=classifier_agent
     )
 
@@ -79,7 +103,7 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
     crew = Crew(
         agents=[signal_verifier, classifier_agent],
         tasks=[task_verify, task_classify],
-        verbose= False
+        verbose=False
     )
 
     raw_result = await crew.kickoff_async()
@@ -93,6 +117,8 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
             "repository": repository_name,
             "ai_detected": len(catalog_data) > 0,
             "system_type": "None",
+            "classification": "UNKNOWN",
+            "reasoning": f"Error parsing CrewAI LLM output: {str(e)}",
             "providers": [],
             "models": [],
             "frameworks": [],

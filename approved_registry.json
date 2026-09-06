@@ -1,0 +1,8 @@
+{
+  "approved_systems": [
+    {
+      "repository": "internal-knowledge-assistant",
+      "provider": "OpenAI"
+    }
+  ]
+}
