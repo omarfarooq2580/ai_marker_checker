@@ -41,7 +41,7 @@ uv --version
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/omarfarooq2580/ai_marker_checker
-cd your-repo-name
+cd ai_marker_checker
 ```
 
 ### 2. Sync Dependencies
