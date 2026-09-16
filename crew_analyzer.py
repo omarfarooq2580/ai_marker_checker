@@ -82,7 +82,7 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
             "{\n"
             f'  "repository": "{repository_name}",\n'
             '  "ai_detected": true/false,\n'
-            '  "system_type": "RAG application" | "Agentic system" | "Traditional ML" | "None",\n'
+            '  "system_type": "RAG application" | "Agentic system" | "Traditional ML" | "Self Hosted" |"None",\n'
             '  "classification": "SANCTIONED" | "UNSANCTIONED" | "UNKNOWN" | "REQUIRES_REVIEW",\n'
             '  "reasoning": "string explaining provider compliance verification",\n'
             '  "providers": ["string"],\n'
