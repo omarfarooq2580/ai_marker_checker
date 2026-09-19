@@ -51,6 +51,7 @@ uv sync
 ```
 
 ### 3. Run the Application
+in the terminal, app your openrouter key using `$env:OPENROUTER_API_KEY="sk-or-v1-your-actual-key-here"`
 You don't need to manually activate the virtual environment! Use `uvicorn app:app1 --reload --port 8000` to execute scripts directly within the environment context:
 
 ```bash
