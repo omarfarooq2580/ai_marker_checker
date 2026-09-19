@@ -1,8 +1,12 @@
 {
   "approved_systems": [
     {
-      "repository": "internal-knowledge-assistant",
+      "repository": "repo(9)",
       "provider": "OpenAI"
+    },
+    {
+      "repository": "repo(9)",
+      "provider": "Azure OpenAI"
     }
   ]
 }

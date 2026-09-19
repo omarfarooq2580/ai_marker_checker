@@ -11,5 +11,4 @@ wheels/
 
 #dumps
 ai_detection_catalog.json
-
 .env

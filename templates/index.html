@@ -48,16 +48,6 @@
 
   .hidden { display: none !important; }
 
-  .radio-option[data-active="true"] .radio-indicator {
-    background-color: #38bdf8;
-    border-color: #38bdf8;
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
-  }
-  .radio-option[data-active="true"] {
-    color: #ffffff;
-    font-weight: 600;
-  }
-
   .spinner {
     width: 14px; height: 14px;
     border: 2px solid rgba(255,255,255,0.2);
@@ -86,54 +76,51 @@
   <!-- MAIN CONTENT AREA -->
   <main class="p-6 sm:p-8 w-full flex-1 space-y-8">
 
-    <!-- TARGET SELECTION FORM SECTION -->
+    <!-- HISTORICAL SCANS DROPDOWN (GET /scans) -->
+    <section class="bg-term-card border border-term-border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-sm">
+      <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+        <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">HISTORICAL SCANS:</span>
+        <select id="scansHistorySelect" class="bg-term-inset border border-term-border text-xs text-term-cyan p-2 font-mono rounded-sm flex-1 sm:w-80">
+          <option value="">-- Loading history... --</option>
+        </select>
+      </div>
+      <button id="refreshScansBtn" type="button" class="bg-term-inset border border-term-border text-xs px-3 py-1.5 hover:bg-slate-800 text-slate-300 cursor-pointer">
+        [ Refresh History ]
+      </button>
+    </section>
+
+    <!-- REPOSITORY BATCH SCANNER FORM -->
     <section>
       <div class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
-        TARGET SELECTION
+        BATCH REPOSITORY SCANNER TARGETS
       </div>
 
-      <div class="bg-term-card border border-term-border p-6 sm:p-7 space-y-5">
-        <form id="scanForm" class="space-y-5">
+      <div class="bg-term-card border border-term-border p-6 sm:p-7 space-y-6 rounded-sm">
+        <form id="scanForm" class="space-y-6">
 
-          <!-- Fixed execution mode payload value -->
-          <input type="hidden" name="execution_mode" value="in-memory">
-
-          <!-- Target Switcher -->
-          <div class="flex flex-wrap items-center gap-8 text-sm">
-            <button type="button" data-target-type="local" data-active="true" class="radio-option tab-btn flex items-center gap-2.5 text-slate-300 hover:text-white cursor-pointer">
-              <span class="radio-indicator w-4 h-4 rounded-full border border-slate-400 inline-block"></span>
-              <span>[ Local Directory / File ]</span>
-            </button>
-            <button type="button" data-target-type="github" data-active="false" class="radio-option tab-btn flex items-center gap-2.5 text-slate-300 hover:text-white cursor-pointer">
-              <span class="radio-indicator w-4 h-4 rounded-full border border-slate-400 inline-block"></span>
-              <span>Remote GitHub Repository</span>
-            </button>
-            <input type="hidden" name="target_type" id="target_type" value="local">
+          <!-- Dropdown to select number of repositories -->
+          <div class="flex items-center gap-4 border-b border-term-border pb-4">
+            <label for="repoCountSelect" class="text-sm text-slate-300 font-medium">
+              Number of Repositories to Scan:
+            </label>
+            <select id="repoCountSelect" class="bg-term-inset border border-term-border text-term-cyan text-sm p-2 font-mono rounded-sm w-28">
+              <option value="1">1 Repo</option>
+              <option value="2">2 Repos</option>
+              <option value="3">3 Repos</option>
+              <option value="4">4 Repos</option>
+              <option value="5">5 Repos</option>
+              <option value="10">10 Repos</option>
+            </select>
           </div>
 
-          <!-- Target Path Input -->
-          <div>
-            <label for="target_path" class="block text-sm text-slate-300 mb-2 font-medium" id="targetPathLabel">Target Path / URL:</label>
-            <input required type="text" id="target_path" name="target_path"
-              placeholder="/Users/username/projects/my-ai-app"
-              class="w-full bg-term-inset border border-term-border px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-term-cyan font-mono rounded-sm">
-          </div>
-
-          <!-- GitHub Access Token (Toggle Driven) -->
-          <div id="githubFields" class="hidden">
-            <div>
-              <label for="github_token" class="block text-sm text-slate-300 mb-2 font-medium">GitHub Access Token (Optional):</label>
-              <input type="password" id="github_token" name="github_token" 
-                placeholder="ghp_************************************"
-                class="w-full bg-term-inset border border-term-border px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-term-cyan font-mono rounded-sm">
-            </div>
-          </div>
+          <!-- Container where dynamic repository target fields will render -->
+          <div id="repoFieldsContainer" class="space-y-6"></div>
 
           <!-- Submit Controls -->
           <div class="flex items-center gap-4 pt-2">
             <button type="submit" id="submitBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-sm font-bold px-6 py-3 flex items-center gap-3 transition-all rounded-sm cursor-pointer">
               <span id="submitSpinner" class="spinner hidden"></span>
-              <span id="submitLabel">[ &gt; RUN SCANNER ENGINE ]</span>
+              <span id="submitLabel">[ &gt; RUN BATCH SCANNER ENGINE ]</span>
             </button>
             <span id="formError" class="text-sm text-term-red bg-rose-950/50 border border-rose-800 px-4 py-2.5 rounded-sm hidden"></span>
           </div>
@@ -142,12 +129,20 @@
       </div>
     </section>
 
+    <!-- DISCOVERED ASSETS INVENTORY TABLE (GET /assets) -->
+    <section id="assetsSection" class="hidden space-y-4">
+      <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">DETECTED ASSETS INVENTORY</div>
+      <div id="assetsBoxesContainer" class="space-y-6">
+        <!-- Dynamic repo asset tables injected here -->
+      </div>
+    </section>
+
     <!-- SCAN RESULTS SECTION -->
     <section id="resultsSection" class="hidden space-y-8">
 
       <div>
         <div class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">SCAN RESULTS SUMMARY</div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 border border-term-border bg-term-card">
+        <div class="grid grid-cols-1 sm:grid-cols-3 border border-term-border bg-term-card rounded-sm">
           <div class="p-4 sm:p-5 border-b sm:border-b-0 sm:border-r border-term-border flex justify-between items-center text-sm">
             <span class="text-slate-400 font-medium">Scanned Files:</span>
             <span id="statFiles" class="font-bold text-term-cyan text-lg">0</span>
@@ -169,41 +164,37 @@
             DETECTION CATALOG <span class="text-slate-400 font-normal">(ai_detection_catalog.json)</span>
           </div>
           <div class="flex gap-3">
-            <button id="exportBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-xs px-4 py-2 cursor-pointer transition-colors">
+            <button id="exportBtn" class="bg-term-inset hover:bg-slate-800 border border-term-border text-white text-xs px-4 py-2 cursor-pointer transition-colors rounded-sm">
               [ Export JSON ]
             </button>
-            <button id="btnCrew" class="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-700 text-term-purple text-xs font-bold px-4 py-2 cursor-pointer transition-colors flex items-center gap-2">
+            <button id="btnCrew" class="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-700 text-term-purple text-xs font-bold px-4 py-2 cursor-pointer transition-colors flex items-center gap-2 rounded-sm">
               <span id="crewSpinner" class="spinner hidden"></span>
-              <span id="crewLabel">[ 🤖 RUN AI ANALYSIS ]</span>
+              <span id="crewLabel">[ RUN AI ANALYSIS ]</span>
             </button>
           </div>
         </div>
 
-        <!-- Dynamic Split Workspace Grid -->
         <div id="splitWorkspace" class="grid grid-cols-1 transition-all duration-300">
           
-          <!-- Detection Catalog Box (Left Side when split) -->
           <div id="catalogBox" class="w-full space-y-6">
             <div id="catalogContainer" class="space-y-6"></div>
           </div>
 
-          <!-- AI Architecture Analysis Box (Right Side when split) -->
           <div id="analysisBox" class="hidden w-full pl-0 lg:pl-4 mt-6 lg:mt-0">
             <div class="bg-term-card border border-purple-800/80 p-6 space-y-4 rounded-sm sticky top-20">
               <div class="flex items-center justify-between border-b border-purple-800/60 pb-3">
-                <h3 class="text-sm sm:text-base font-bold text-term-purple uppercase tracking-wide">🤖 AI Architecture Deliverable</h3>
-                <span class="text-term-cyan font-bold text-xs bg-slate-900 border border-slate-700 px-3 py-1 rounded-sm">CrewAI Engine</span>
+                <h3 class="text-sm sm:text-base font-bold text-term-purple uppercase tracking-wide">AI ANALYSIS RESULTS</h3>
               </div>
               <div class="space-y-2">
                 <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">SYSTEM CLASSIFICATION JSON:</div>
-                <pre id="analysisOutput" class="bg-term-inset border border-term-border p-4 text-xs text-emerald-400 max-h-[600px] overflow-y-auto whitespace-pre-wrap leading-relaxed">Click "[ 🤖 RUN AI ANALYSIS ]" to execute agent verification...</pre>
+                <pre id="analysisOutput" class="bg-term-inset border border-term-border p-4 text-xs text-emerald-400 max-h-[600px] overflow-y-auto whitespace-pre-wrap leading-relaxed">Click "[ RUN AI ANALYSIS ]" to execute agent verification...</pre>
               </div>
             </div>
           </div>
 
         </div>
 
-        <div id="emptyState" class="hidden text-center py-12 text-slate-400 text-sm border border-dashed border-term-border bg-term-card">
+        <div id="emptyState" class="hidden text-center py-12 text-slate-400 text-sm border border-dashed border-term-border bg-term-card rounded-sm">
           No AI/ML markers detected in the provided target location.
         </div>
       </div>
@@ -211,11 +202,22 @@
     </section>
 
     <!-- Placeholder State -->
-    <section id="placeholderState" class="text-center py-12 text-slate-400 text-sm border border-dashed border-term-border bg-term-card">
-      Select target parameters above and click "[ &gt; RUN SCANNER ENGINE ]".
+    <section id="placeholderState" class="text-center py-12 text-slate-400 text-sm border border-dashed border-term-border bg-term-card rounded-sm">
+      Configure targets above and click "[ &gt; RUN BATCH SCANNER ENGINE ]".
     </section>
 
   </main>
+
+  <!-- ASSET DETAIL MODAL -->
+  <div id="assetModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+    <div class="bg-term-card border border-term-border max-w-lg w-full p-6 space-y-4 rounded-sm">
+      <div class="flex justify-between items-center border-b border-term-border pb-2">
+        <h3 id="modalAssetId" class="font-bold text-term-cyan text-sm"></h3>
+        <button id="closeModalBtn" type="button" class="text-slate-400 hover:text-white text-xs cursor-pointer">[ Close X ]</button>
+      </div>
+      <div id="modalAssetContent" class="text-xs space-y-3 font-mono text-slate-300"></div>
+    </div>
+  </div>
 
   <!-- FOOTER -->
   <footer class="text-center border-t border-term-border p-5 text-sm text-slate-400 flex flex-col sm:flex-row justify-between gap-2">
@@ -223,37 +225,8 @@
   </footer>
 
 <script>
-  const state = { targetType: 'local' };
-
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  const targetTypeInput = document.getElementById('target_type');
-  const targetPathInput = document.getElementById('target_path');
-  const targetPathLabel = document.getElementById('targetPathLabel');
-  const githubFields = document.getElementById('githubFields');
-
-  function updateView() {
-    if (state.targetType === 'github') {
-      githubFields.classList.remove('hidden');
-      targetPathLabel.textContent = 'Target Path / URL:';
-      targetPathInput.placeholder = 'https://github.com/organization/deep-learning-pipeline';
-    } else {
-      githubFields.classList.add('hidden');
-      targetPathLabel.textContent = 'Target Path / URL:';
-      targetPathInput.placeholder = '/Users/username/projects/my-ai-app';
-    }
-  }
-
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabBtns.forEach(b => b.dataset.active = 'false');
-      btn.dataset.active = 'true';
-      state.targetType = btn.dataset.targetType;
-      targetTypeInput.value = state.targetType;
-      updateView();
-    });
-  });
-
-  updateView();
+  const repoCountSelect = document.getElementById('repoCountSelect');
+  const repoFieldsContainer = document.getElementById('repoFieldsContainer');
 
   const form = document.getElementById('scanForm');
   const submitBtn = document.getElementById('submitBtn');
@@ -296,6 +269,214 @@
       .replaceAll('"', '&quot;');
   }
 
+  // --- DYNAMIC TARGET INPUT FIELDS GENERATOR ---
+  function renderRepoFields(count) {
+    repoFieldsContainer.innerHTML = '';
+
+    for (let i = 0; i < count; i++) {
+      const card = document.createElement('div');
+      card.className = "bg-term-inset border border-term-border p-4 rounded-sm space-y-4 repo-target-card";
+      card.innerHTML = `
+        <div class="flex items-center justify-between border-b border-term-border pb-2">
+          <span class="text-xs font-bold text-term-cyan uppercase">Repository Target #${i + 1}</span>
+          <div class="flex items-center gap-4 text-xs">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
+              <input type="radio" name="target_type_${i}" value="local" checked class="target-type-toggle" data-index="${i}">
+              <span>Local Path</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
+              <input type="radio" name="target_type_${i}" value="github" class="target-type-toggle" data-index="${i}">
+              <span>GitHub Repo</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1 font-medium">Target Path / URL:</label>
+          <input required type="text" id="target_path_${i}"
+            placeholder="/Users/username/projects/project-alpha"
+            class="w-full bg-term-bg border border-term-border px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-term-cyan font-mono rounded-sm">
+        </div>
+
+        <div id="github_fields_${i}" class="hidden">
+          <label class="block text-xs text-slate-400 mb-1 font-medium">GitHub Token (Optional):</label>
+          <input type="password" id="github_token_${i}"
+            placeholder="ghp_************************************"
+            class="w-full bg-term-bg border border-term-border px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-term-cyan font-mono rounded-sm">
+        </div>
+      `;
+      repoFieldsContainer.appendChild(card);
+    }
+
+    document.querySelectorAll('.target-type-toggle').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const idx = e.target.dataset.index;
+        const isGithub = e.target.value === 'github';
+        const pathInput = document.getElementById(`target_path_${idx}`);
+        const tokenContainer = document.getElementById(`github_fields_${idx}`);
+
+        if (isGithub) {
+          tokenContainer.classList.remove('hidden');
+          pathInput.placeholder = "https://github.com/organization/project-beta";
+        } else {
+          tokenContainer.classList.add('hidden');
+          pathInput.placeholder = "/Users/username/projects/project-alpha";
+        }
+      });
+    });
+  }
+
+  repoCountSelect.addEventListener('change', (e) => {
+    renderRepoFields(parseInt(e.target.value, 10));
+  });
+
+  renderRepoFields(1);
+
+  // --- FETCH HISTORICAL SCANS ---
+  async function fetchScanHistory() {
+    try {
+      const res = await fetch('/scans');
+      const data = await res.json();
+      const select = document.getElementById('scansHistorySelect');
+
+      select.innerHTML = '<option value="">-- Select a previous scan --</option>';
+      if (data.scans && data.scans.length > 0) {
+        data.scans.forEach(scan => {
+          const option = document.createElement('option');
+          option.value = scan.scan_id;
+          option.textContent = `[${scan.scan_id}] ${scan.repository_path} (Detected: ${scan.systems_found})`;
+          select.appendChild(option);
+        });
+      } else {
+        select.innerHTML = '<option value="">-- No previous scans found --</option>';
+      }
+    } catch (err) {
+      console.error("Failed to fetch scan history:", err);
+    }
+  }
+
+  document.getElementById('scansHistorySelect').addEventListener('change', async (e) => {
+    const scanId = e.target.value;
+    if (!scanId) return;
+
+    try {
+      const res = await fetch(`/scans/${scanId}`);
+      if (!res.ok) throw new Error("Could not retrieve selected scan details.");
+
+      const data = await res.json();
+
+      statFiles.textContent = data.metrics.files_scanned;
+      statTech.textContent = data.metrics.technologies_detected;
+      statEvidence.textContent = data.metrics.evidence_matches;
+
+      renderCatalog(data.catalog);
+      placeholderState.classList.add('hidden');
+      resultsSection.classList.remove('hidden');
+
+      fetchAssetsInventory();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // --- FETCH DISCOVERED ASSETS INVENTORY (GROUPED BY REPOSITORY BOXES) ---
+  async function fetchAssetsInventory() {
+    try {
+      const res = await fetch('/assets');
+      const data = await res.json();
+      const container = document.getElementById('assetsBoxesContainer');
+      const assetsSection = document.getElementById('assetsSection');
+
+      container.innerHTML = '';
+
+      if (!data.assets || data.assets.length === 0) {
+        assetsSection.classList.add('hidden');
+        return;
+      }
+
+      // Group assets by repository_name
+      const grouped = {};
+      data.assets.forEach(asset => {
+        const repo = asset.repository_name || 'General Repository';
+        if (!grouped[repo]) grouped[repo] = [];
+        grouped[repo].push(asset);
+      });
+
+      // Render separate box for each repository
+      Object.entries(grouped).forEach(([repoName, assets]) => {
+        const box = document.createElement('div');
+        box.className = "bg-term-card border border-term-border rounded-sm overflow-hidden space-y-2";
+        
+        const rowsHtml = assets.map(asset => `
+          <tr class="hover:bg-term-inset transition-colors">
+            <td class="p-3 text-term-cyan font-bold">${escapeHtml(asset.asset_id)}</td>
+            <td class="p-3 text-white font-semibold">${escapeHtml(asset.technology)}</td>
+            <td class="p-3">${asset.evidence_count}</td>
+            <td class="p-3">
+              <button type="button" onclick="viewAssetDetail('${asset.asset_id}')" class="text-term-purple hover:underline cursor-pointer">
+                [ Inspect ]
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+        box.innerHTML = `
+          <div class="bg-term-inset border-b border-term-border px-4 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-bold text-term-cyan uppercase">REPOSITORY: ${escapeHtml(repoName)}</span>
+            <span class="text-xs text-slate-400 font-mono">${assets.length} Asset(s)</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-term-inset border-b border-term-border text-slate-400 font-mono">
+                <tr>
+                  <th class="p-3">Asset ID</th>
+                  <th class="p-3">Technology</th>
+                  <th class="p-3">Evidence Hits</th>
+                  <th class="p-3">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-term-border text-slate-200 font-mono">
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(box);
+      });
+
+      assetsSection.classList.remove('hidden');
+    } catch (err) {
+      console.error("Failed to fetch assets inventory:", err);
+    }
+  }
+
+  async function viewAssetDetail(assetId) {
+    try {
+      const res = await fetch(`/assets/${assetId}`);
+      if (!res.ok) throw new Error("Asset details not found.");
+
+      const asset = await res.json();
+
+      document.getElementById('modalAssetId').textContent = `ASSET DETAILS: ${asset.asset_id}`;
+      document.getElementById('modalAssetContent').innerHTML = `
+        <div><strong class="text-slate-400">Repository:</strong> ${escapeHtml(asset.repository_name || 'N/A')}</div>
+        <div><strong class="text-slate-400">Technology:</strong> ${escapeHtml(asset.technology)}</div>
+        <div><strong class="text-slate-400">Total Evidence Count:</strong> ${asset.evidence_count}</div>
+        <div class="pt-2"><strong class="text-slate-400">Categorized Signals:</strong></div>
+        <pre class="bg-term-inset p-3 border border-term-border text-emerald-400 text-xs overflow-x-auto rounded-sm">${JSON.stringify(asset.signals, null, 2)}</pre>
+      `;
+
+      document.getElementById('assetModal').classList.remove('hidden');
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  document.getElementById('refreshScansBtn').addEventListener('click', fetchScanHistory);
+  document.getElementById('closeModalBtn').addEventListener('click', () => {
+    document.getElementById('assetModal').classList.add('hidden');
+  });
+
   function renderInlineBlock(label, values) {
     if (!values || values.length === 0) return '';
     const joined = values.map(v => escapeHtml(v)).join(', ');
@@ -322,7 +503,10 @@
     return `
       <div class="bg-term-card border border-term-border p-6 space-y-4 rounded-sm">
         <div class="flex items-center justify-between border-b border-term-border pb-3">
-          <h3 class="text-sm sm:text-base font-bold text-white uppercase tracking-wide">BOX ${index + 1}: ${escapeHtml(entry.technology)}</h3>
+          <div>
+            <span class="text-xs text-term-cyan font-bold block">REPO: ${escapeHtml(entry.repository_name || 'N/A')}</span>
+            <h3 class="text-sm sm:text-base font-bold text-white uppercase tracking-wide">BOX ${index + 1}: ${escapeHtml(entry.technology)}</h3>
+          </div>
           <span class="text-term-green font-bold text-xs sm:text-sm bg-emerald-950/40 border border-emerald-800 px-3 py-1 rounded-sm">Status: DETECTED</span>
         </div>
 
@@ -352,22 +536,50 @@
   function setLoading(isLoading) {
     submitBtn.disabled = isLoading;
     submitSpinner.classList.toggle('hidden', !isLoading);
-    submitLabel.textContent = isLoading ? '[ RUNNING SCANNER... ]' : '[ > RUN SCANNER ENGINE ]';
+    submitLabel.textContent = isLoading ? '[ EXECUTING BATCH SCAN... ]' : '[ > RUN BATCH SCANNER ENGINE ]';
   }
 
+  // --- FORM SUBMIT ACTION (POST /scan) ---
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     formError.classList.add('hidden');
     setLoading(true);
     placeholderState.classList.add('hidden');
 
-    // Reset split view layout on fresh scan
     splitWorkspace.className = "grid grid-cols-1 transition-all duration-300";
     analysisBox.classList.add('hidden');
 
+    const count = parseInt(repoCountSelect.value, 10);
+    const targetsPayload = [];
+
+    for (let i = 0; i < count; i++) {
+      const type_target = document.querySelector(`input[name="target_type_${i}"]:checked`).value;
+      const target_path = document.getElementById(`target_path_${i}`).value.trim();
+      const isGithub = type_target === 'github';
+      const github_token = isGithub ? document.getElementById(`github_token_${i}`).value.trim() : "";
+
+      if (target_path) {
+        targetsPayload.push({
+          target_type: type_target,
+          target_path: target_path,
+          github_token: github_token
+        });
+      }
+    }
+
+    if (targetsPayload.length === 0) {
+      formError.textContent = "Please enter at least one valid repository path.";
+      formError.classList.remove('hidden');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const formData = new FormData(form);
-      const res = await fetch('/api/scan', { method: 'POST', body: formData });
+      const res = await fetch('/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(targetsPayload)
+      });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
@@ -380,6 +592,9 @@
 
       renderCatalog(data.catalog);
       resultsSection.classList.remove('hidden');
+
+      fetchScanHistory();
+      fetchAssetsInventory();
     } catch (err) {
       formError.textContent = err.message;
       formError.classList.remove('hidden');
@@ -390,16 +605,15 @@
     }
   });
 
-  // Handle AI Architecture Split-Screen Toggle & Trigger
+  // Handle AI Architecture Split-Screen Toggle
   btnCrew.addEventListener('click', async () => {
-    // Readjust catalog display box to the left grid column and reveal the right box
     splitWorkspace.className = "grid grid-cols-1 lg:grid-cols-2 gap-4 transition-all duration-300";
     analysisBox.classList.remove('hidden');
 
     btnCrew.disabled = true;
     crewSpinner.classList.remove('hidden');
     crewLabel.textContent = '[ RUNNING AGENTS... ]';
-    analysisOutput.textContent = "Executing CrewAI Agent Pipeline (Nemotron-3-Ultra)...";
+    analysisOutput.textContent = "Executing CrewAI Agent Pipeline...";
 
     try {
       const res = await fetch('/api/analyze-crew', { method: 'POST' });
@@ -415,7 +629,7 @@
     } finally {
       btnCrew.disabled = false;
       crewSpinner.classList.add('hidden');
-      crewLabel.textContent = '[ 🤖 RUN AI ANALYSIS ]';
+      crewLabel.textContent = '[ RUN AI ANALYSIS ]';
     }
   });
 
@@ -436,6 +650,8 @@
     a.remove();
     URL.revokeObjectURL(url);
   });
+
+  fetchScanHistory();
 </script>
 
 </body>

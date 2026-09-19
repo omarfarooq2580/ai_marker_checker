@@ -16,17 +16,14 @@ def load_approved_registry():
         try:
             with open(registry_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except(json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError):
             return {"approved_systems": []}
-        return {"approved_systems": []}
+    return {"approved_systems": []}
 
-async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-repo") -> dict:
-    """
-    Executes a CrewAI two-agent workflow over scanner findings and registry rules.
-    Returns structured JSON matching the target classification and compliance schema.
-    """
-    registry = load_approved_registry()
 
+async def _analyze_single_repo(repo_name: str, repo_catalog: list, registry: dict) -> dict:
+    """Executes the CrewAI workflow for a single repository's catalog data."""
+    
     # Agent 1: Primary Evidence Verifier
     signal_verifier = Agent(
         role="Signal Verification Agent",
@@ -55,8 +52,8 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
     # Task 1: Verification Task
     task_verify = Task(
         description=(
-            f"Analyze the following scanner catalog findings for repository '{repository_name}':\n\n"
-            f"{json.dumps(catalog_data, indent=2)}\n\n"
+            f"Analyze the following scanner catalog findings specifically for repository '{repo_name}':\n\n"
+            f"{json.dumps(repo_catalog, indent=2)}\n\n"
             "Identify all verified AI libraries, explicitly declared LLM model names, "
             "vector databases (e.g., Pinecone, ChromaDB), agent orchestration frameworks (e.g., CrewAI, AutoGen), "
             "and AI providers/vendors (e.g., Azure OpenAI, OpenAI, Anthropic)."
@@ -68,10 +65,9 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
     # Task 2: Classification & Registry Compliance Task
     task_classify = Task(
         description=(
-            f"Using the verified signals report, generate the final system classification and registry compliance analysis.\n\n"
+            f"Using the verified signals report, generate the final system classification and registry compliance analysis for '{repo_name}'.\n\n"
             f"Approved Registry:\n{json.dumps(registry, indent=2)}\n\n"
             "REGISTRY COMPLIANCE RULES:\n"
-            "- IGNORE the repository name/field in the Approved Registry. Evaluate ONLY the detected providers and frameworks against the approved list in the registry.\n"
             "- Assign EXACTLY one of these four status classifications:\n"
             "  1. SANCTIONED: All detected AI providers/frameworks match an approved provider in the registry.\n"
             "  2. UNSANCTIONED: AI markers/providers are detected, but they utilize an unauthorized vendor or provider not in the approved registry.\n"
@@ -80,9 +76,9 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
             "CRITICAL CONSTRAINT: Do NOT classify any system as illegal or non-compliant under any circumstances. Restrict status outputs strictly to the four provided classification categories.\n\n"
             "Format your response EXACTLY as a single raw JSON object matching this schema:\n"
             "{\n"
-            f'  "repository": "{repository_name}",\n'
+            f'  "repository": "{repo_name}",\n'
             '  "ai_detected": true/false,\n'
-            '  "system_type": "RAG application" | "Agentic system" | "Traditional ML" | "Self Hosted" |"None",\n'
+            '  "system_type": "RAG application" | "Agentic system" | "Traditional ML" | "Self Hosted" | "None",\n'
             '  "classification": "SANCTIONED" | "UNSANCTIONED" | "UNKNOWN" | "REQUIRES_REVIEW",\n'
             '  "reasoning": "string explaining provider compliance verification",\n'
             '  "providers": ["string"],\n'
@@ -99,7 +95,6 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
         agent=classifier_agent
     )
 
-    # Run Sequential Workflow
     crew = Crew(
         agents=[signal_verifier, classifier_agent],
         tasks=[task_verify, task_classify],
@@ -108,14 +103,13 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
 
     raw_result = await crew.kickoff_async()
 
-    # Parse and Return JSON Deliverable
     try:
         clean_text = str(raw_result).strip().replace("```json", "").replace("```", "").strip()
         return json.loads(clean_text)
     except Exception as e:
         return {
-            "repository": repository_name,
-            "ai_detected": len(catalog_data) > 0,
+            "repository": repo_name,
+            "ai_detected": len(repo_catalog) > 0,
             "system_type": "None",
             "classification": "UNKNOWN",
             "reasoning": f"Error parsing CrewAI LLM output: {str(e)}",
@@ -128,3 +122,35 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
             "missing_information": [f"Error parsing CrewAI LLM output: {str(e)}"],
             "raw_output": str(raw_result)
         }
+
+
+async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-repo") -> dict:
+    """
+    Groups catalog data by repository and executes individual analysis per repository.
+    Returns a dictionary containing separate repository analysis breakdown results.
+    """
+    registry = load_approved_registry()
+
+    # 1. Group catalog items by repository_name
+    grouped_catalog = {}
+    for entry in catalog_data:
+        repo = entry.get("repository_name", repository_name)
+        if repo not in grouped_catalog:
+            grouped_catalog[repo] = []
+        grouped_catalog[repo].append(entry)
+
+    # Fallback if catalog is empty
+    if not grouped_catalog:
+        grouped_catalog[repository_name] = []
+
+    # 2. Analyze each repository individually
+    repositories_results = {}
+    for repo, repo_catalog in grouped_catalog.items():
+        analysis = await _analyze_single_repo(repo, repo_catalog, registry)
+        repositories_results[repo] = analysis
+
+    # 3. Return aggregated breakdown separated by repo name
+    return {
+        "total_repositories": len(repositories_results),
+        "repositories": repositories_results
+    }
