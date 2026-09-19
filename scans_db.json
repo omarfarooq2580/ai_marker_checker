@@ -2448,5 +2448,343 @@
     ],
     "repository_path": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)",
     "repository_name": "repo(9)"
+  },
+  "scan_031": {
+    "scan_id": "scan_031",
+    "status": "completed",
+    "ai_detected": true,
+    "systems_found": 3,
+    "catalog": [
+      {
+        "technology": "OpenAI",
+        "signals": {
+          "packages": [
+            "openai"
+          ],
+          "imports": [
+            "OpenAI",
+            "openai"
+          ],
+          "environment_variables": [],
+          "endpoints": [],
+          "code_patterns": [
+            "client.chat.completions.create"
+          ],
+          "docker_images": [],
+          "models": [
+            "gpt-4o-mini"
+          ],
+          "extensions_and_metrics": []
+        },
+        "evidence": [
+          {
+            "technology": "OpenAI",
+            "signal": "code_pattern",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "resp = client.chat.completions.create("
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "client = AzureOpenAI("
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "from openai import AzureOpenAI"
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "model_reference",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "model=os.environ.get(\"AZURE_OPENAI_DEPLOYMENT\", \"gpt-4o-mini\"),"
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "package_dependency",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "from openai import AzureOpenAI"
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "package_dependency",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\requirements.txt",
+            "evidence": "openai==1.51.0"
+          }
+        ],
+        "repository_name": "repo(9)"
+      },
+      {
+        "technology": "Azure OpenAI",
+        "signals": {
+          "packages": [],
+          "imports": [
+            "AzureOpenAI"
+          ],
+          "environment_variables": [
+            "AZURE_OPENAI_ENDPOINT"
+          ],
+          "endpoints": [],
+          "code_patterns": [],
+          "docker_images": [],
+          "models": [],
+          "extensions_and_metrics": []
+        },
+        "evidence": [
+          {
+            "technology": "Azure OpenAI",
+            "signal": "environment_variable",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "azure_endpoint=os.environ[\"AZURE_OPENAI_ENDPOINT\"],"
+          },
+          {
+            "technology": "Azure OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "client = AzureOpenAI("
+          },
+          {
+            "technology": "Azure OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "from openai import AzureOpenAI"
+          }
+        ],
+        "repository_name": "repo(9)"
+      },
+      {
+        "technology": "Semantic Kernel",
+        "signals": {
+          "packages": [],
+          "imports": [
+            "sk"
+          ],
+          "environment_variables": [],
+          "endpoints": [],
+          "code_patterns": [],
+          "docker_images": [],
+          "models": [],
+          "extensions_and_metrics": []
+        },
+        "evidence": [
+          {
+            "technology": "Semantic Kernel",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "print(ask(\"Say hello in one sentence.\"))"
+          }
+        ],
+        "repository_name": "repo(9)"
+      }
+    ],
+    "repository_path": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)",
+    "repository_name": "repo(9)"
+  },
+  "scan_032": {
+    "scan_id": "scan_032",
+    "status": "completed",
+    "ai_detected": true,
+    "systems_found": 2,
+    "catalog": [
+      {
+        "technology": "OpenAI",
+        "signals": {
+          "packages": [
+            "openai"
+          ],
+          "imports": [
+            "openai"
+          ],
+          "environment_variables": [],
+          "endpoints": [],
+          "code_patterns": [],
+          "docker_images": [],
+          "models": [],
+          "extensions_and_metrics": []
+        },
+        "evidence": [
+          {
+            "technology": "OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(2)\\main.py",
+            "evidence": "import openai  # imported but never called"
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "package_dependency",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(2)\\main.py",
+            "evidence": "import openai  # imported but never called"
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "package_dependency",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(2)\\requirements.txt",
+            "evidence": "openai==1.51.0"
+          }
+        ],
+        "repository_name": "repo(2)"
+      },
+      {
+        "technology": "Azure OpenAI",
+        "signals": {
+          "packages": [],
+          "imports": [
+            "openai"
+          ],
+          "environment_variables": [],
+          "endpoints": [],
+          "code_patterns": [],
+          "docker_images": [],
+          "models": [],
+          "extensions_and_metrics": []
+        },
+        "evidence": [
+          {
+            "technology": "Azure OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(2)\\main.py",
+            "evidence": "import openai  # imported but never called"
+          }
+        ],
+        "repository_name": "repo(2)"
+      }
+    ],
+    "repository_path": "C:\\Users\\omarm\\Desktop\\test repos\\repo(2)",
+    "repository_name": "repo(2)"
+  },
+  "scan_033": {
+    "scan_id": "scan_033",
+    "status": "completed",
+    "ai_detected": true,
+    "systems_found": 3,
+    "catalog": [
+      {
+        "technology": "OpenAI",
+        "signals": {
+          "packages": [
+            "openai"
+          ],
+          "imports": [
+            "OpenAI",
+            "openai"
+          ],
+          "environment_variables": [],
+          "endpoints": [],
+          "code_patterns": [
+            "client.chat.completions.create"
+          ],
+          "docker_images": [],
+          "models": [
+            "gpt-4o-mini"
+          ],
+          "extensions_and_metrics": []
+        },
+        "evidence": [
+          {
+            "technology": "OpenAI",
+            "signal": "code_pattern",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "resp = client.chat.completions.create("
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "client = AzureOpenAI("
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "from openai import AzureOpenAI"
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "model_reference",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "model=os.environ.get(\"AZURE_OPENAI_DEPLOYMENT\", \"gpt-4o-mini\"),"
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "package_dependency",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "from openai import AzureOpenAI"
+          },
+          {
+            "technology": "OpenAI",
+            "signal": "package_dependency",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\requirements.txt",
+            "evidence": "openai==1.51.0"
+          }
+        ],
+        "repository_name": "repo(9)"
+      },
+      {
+        "technology": "Azure OpenAI",
+        "signals": {
+          "packages": [],
+          "imports": [
+            "AzureOpenAI"
+          ],
+          "environment_variables": [
+            "AZURE_OPENAI_ENDPOINT"
+          ],
+          "endpoints": [],
+          "code_patterns": [],
+          "docker_images": [],
+          "models": [],
+          "extensions_and_metrics": []
+        },
+        "evidence": [
+          {
+            "technology": "Azure OpenAI",
+            "signal": "environment_variable",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "azure_endpoint=os.environ[\"AZURE_OPENAI_ENDPOINT\"],"
+          },
+          {
+            "technology": "Azure OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "client = AzureOpenAI("
+          },
+          {
+            "technology": "Azure OpenAI",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "from openai import AzureOpenAI"
+          }
+        ],
+        "repository_name": "repo(9)"
+      },
+      {
+        "technology": "Semantic Kernel",
+        "signals": {
+          "packages": [],
+          "imports": [
+            "sk"
+          ],
+          "environment_variables": [],
+          "endpoints": [],
+          "code_patterns": [],
+          "docker_images": [],
+          "models": [],
+          "extensions_and_metrics": []
+        },
+        "evidence": [
+          {
+            "technology": "Semantic Kernel",
+            "signal": "import_statement",
+            "file": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)\\main.py",
+            "evidence": "print(ask(\"Say hello in one sentence.\"))"
+          }
+        ],
+        "repository_name": "repo(9)"
+      }
+    ],
+    "repository_path": "C:\\Users\\omarm\\Desktop\\test repos\\repo(9)",
+    "repository_name": "repo(9)"
   }
 }

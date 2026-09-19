@@ -1,5 +1,7 @@
 import os
 import json
+from typing import List, Literal
+from pydantic import BaseModel, Field
 from crewai import Agent, Task, Crew, LLM
 
 # Initialize LiteLLM via OpenRouter endpoint
@@ -8,6 +10,23 @@ openrouter_llm = LLM(
     api_key=os.environ.get("OPENROUTER_API_KEY", ""),
     base_url="https://openrouter.ai/api/v1"
 )
+
+
+# --- PYDANTIC OUTPUT SCHEMA ---
+class RepoAnalysis(BaseModel):
+    repository: str
+    ai_detected: bool
+    system_type: Literal["RAG application", "Agentic system", "Traditional ML", "Self Hosted", "None"]
+    classification: Literal["SANCTIONED", "UNSANCTIONED", "UNKNOWN", "REQUIRES_REVIEW"]
+    reasoning: str
+    providers: List[str] = Field(default_factory=list)
+    models: List[str] = Field(default_factory=list)
+    frameworks: List[str] = Field(default_factory=list)
+    vector_databases: List[str] = Field(default_factory=list)
+    confidence: int = Field(ge=0, le=100)
+    evidence: List[str] = Field(default_factory=list)
+    missing_information: List[str] = Field(default_factory=list)
+
 
 def load_approved_registry():
     """Loads the approved AI systems registry from the local JSON file."""
@@ -22,8 +41,8 @@ def load_approved_registry():
 
 
 async def _analyze_single_repo(repo_name: str, repo_catalog: list, registry: dict) -> dict:
-    """Executes the CrewAI workflow for a single repository's catalog data."""
-    
+    """Executes the CrewAI workflow for a single repository using Pydantic output enforcement."""
+
     # Agent 1: Primary Evidence Verifier
     signal_verifier = Agent(
         role="Signal Verification Agent",
@@ -73,26 +92,11 @@ async def _analyze_single_repo(repo_name: str, repo_catalog: list, registry: dic
             "  2. UNSANCTIONED: AI markers/providers are detected, but they utilize an unauthorized vendor or provider not in the approved registry.\n"
             "  3. UNKNOWN: Ambiguous signals or insufficient vendor details to determine the provider.\n"
             "  4. REQUIRES_REVIEW: Borderline, experimental tools, or unverified configurations requiring human oversight.\n\n"
-            "CRITICAL CONSTRAINT: Do NOT classify any system as illegal or non-compliant under any circumstances. Restrict status outputs strictly to the four provided classification categories.\n\n"
-            "Format your response EXACTLY as a single raw JSON object matching this schema:\n"
-            "{\n"
-            f'  "repository": "{repo_name}",\n'
-            '  "ai_detected": true/false,\n'
-            '  "system_type": "RAG application" | "Agentic system" | "Traditional ML" | "Self Hosted" | "None",\n'
-            '  "classification": "SANCTIONED" | "UNSANCTIONED" | "UNKNOWN" | "REQUIRES_REVIEW",\n'
-            '  "reasoning": "string explaining provider compliance verification",\n'
-            '  "providers": ["string"],\n'
-            '  "models": ["string"],\n'
-            '  "frameworks": ["string"],\n'
-            '  "vector_databases": ["string"],\n'
-            '  "confidence": 0-100,\n'
-            '  "evidence": ["string"],\n'
-            '  "missing_information": ["string"]\n'
-            "}\n"
-            "Never invent information. If unknown, keep list fields empty. Do NOT include markdown blocks or extra text outside the JSON."
+            "CRITICAL CONSTRAINT: Do NOT classify any system as illegal or non-compliant under any circumstances. Restrict status outputs strictly to the four provided classification categories."
         ),
-        expected_output="A valid raw JSON object matching the requested schema containing system classification, registry compliance, and details.",
-        agent=classifier_agent
+        expected_output="A structured JSON object matching the RepoAnalysis model schema.",
+        agent=classifier_agent,
+        output_json=RepoAnalysis  # Enforces Pydantic schema adherence directly on the LLM
     )
 
     crew = Crew(
@@ -103,8 +107,16 @@ async def _analyze_single_repo(repo_name: str, repo_catalog: list, registry: dic
 
     raw_result = await crew.kickoff_async()
 
+    # Extract structured dictionary directly from task execution output
     try:
-        clean_text = str(raw_result).strip().replace("```json", "").replace("```", "").strip()
+        if task_classify.output and task_classify.output.json_dict:
+            return task_classify.output.json_dict
+        elif task_classify.output and task_classify.output.pydantic:
+            return task_classify.output.pydantic.model_dump()
+        
+        # Fallback parsing in case output text requires manual extraction
+        raw_text = str(raw_result.raw) if hasattr(raw_result, 'raw') else str(raw_result)
+        clean_text = raw_text.replace("```json", "").replace("```", "").strip()
         return json.loads(clean_text)
     except Exception as e:
         return {
@@ -119,19 +131,18 @@ async def _analyze_single_repo(repo_name: str, repo_catalog: list, registry: dic
             "vector_databases": [],
             "confidence": 0,
             "evidence": [],
-            "missing_information": [f"Error parsing CrewAI LLM output: {str(e)}"],
-            "raw_output": str(raw_result)
+            "missing_information": [f"Error parsing CrewAI LLM output: {str(e)}"]
         }
 
 
-async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-repo") -> dict:
+async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-repo") -> list:
     """
     Groups catalog data by repository and executes individual analysis per repository.
-    Returns a dictionary containing separate repository analysis breakdown results.
+    Returns a clean array of repository JSON objects without extra metadata wrappers.
     """
     registry = load_approved_registry()
 
-    # 1. Group catalog items by repository_name
+    # Group catalog items by repository_name
     grouped_catalog = {}
     for entry in catalog_data:
         repo = entry.get("repository_name", repository_name)
@@ -139,18 +150,18 @@ async def run_crew_analysis(catalog_data: list, repository_name: str = "scanned-
             grouped_catalog[repo] = []
         grouped_catalog[repo].append(entry)
 
-    # Fallback if catalog is empty
     if not grouped_catalog:
         grouped_catalog[repository_name] = []
 
-    # 2. Analyze each repository individually
-    repositories_results = {}
+    # Run single-repo analysis for each repository
+    results = []
     for repo, repo_catalog in grouped_catalog.items():
         analysis = await _analyze_single_repo(repo, repo_catalog, registry)
-        repositories_results[repo] = analysis
+        results.append(analysis)
 
-    # 3. Return aggregated breakdown separated by repo name
-    return {
-        "total_repositories": len(repositories_results),
-        "repositories": repositories_results
-    }
+    # If only 1 repository was scanned, return its JSON object directly
+    if len(results) == 1:
+        return results[0]
+
+    # Return a clean list of repository JSON objects for multi-repository scans
+    return results
